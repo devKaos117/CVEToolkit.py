@@ -4,7 +4,6 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any
 
 
-
 class CVEEnumerator:
     """
     Class to enumerate CVEs, either in multithreading or multiprocessing.
@@ -59,28 +58,28 @@ class CVEEnumerator:
 
                 # Avoiding duplicates
                 if sw_id in processed_set:
-                    self._logger.warning(f"Skipping already processed software {software["id"]}")
+                    self._logger.warning(f"Skipping already processed software {software['id']}")
                     continue
 
                 processed_set[sw_id] = True
 
                 try:
-                    self._logger.info(f"Processing software {software["id"]}")
+                    self._logger.info(f"Processing software {software['id']}")
                     
                     # Fetch CVEs for this software
-                    cves = fetcher.fetch(session=session, keywords=software["name"], version=software["version"])
+                    cves = fetcher.fetch(session=session, keywords=software['name'], version=software['version'])
                     
                     # Store results
                     software_copy = software.copy()
-                    software_copy["cve"] = cves
+                    software_copy['cve'] = cves
                     results_dict[sw_id] = software_copy
                     
                 except Exception as e:
-                    self._logger.exception(f"Error processing software {software["id"]}: {str(e)}")
+                    self._logger.exception(f"Error processing software {software['id']}: {str(e)}")
                     # Still update results to indicate processing was done
                     software_copy = software.copy()
-                    software_copy["cve"] = []
-                    software_copy["error"] = str(e)
+                    software_copy['cve'] = []
+                    software_copy['error'] = str(e)
                     results_dict[sw_id] = software_copy
                     
                 finally:
@@ -155,22 +154,22 @@ class CVEEnumerator:
             Tuple with software id and software data with cve
         """
         try:
-            self._logger.debug(f"Processing software {software["id"]}")
+            self._logger.debug(f"Processing software {software['id']}")
             
             # Fetch CVEs for this software
-            cves = fetcher.fetch(session=session, keywords=software["name"], version=software["version"])
+            cves = fetcher.fetch(session=session, keywords=software['name'], version=software['version'])
             
             # Create result
             software_copy = software.copy()
-            software_copy["cve"] = cves
+            software_copy['cve'] = cves
             
             return sw_id, software_copy
             
         except Exception as e:
-            self._logger.exception(f"Error processing software {software["id"]}: {str(e)}")
+            self._logger.exception(f"Error processing software {software['id']}: {str(e)}")
             software_copy = software.copy()
-            software_copy["cve"] = []
-            software_copy["error"] = str(e)
+            software_copy['cve'] = []
+            software_copy['error'] = str(e)
             return sw_id, software_copy
     
     def multithreading(self, softwares: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:

@@ -2,6 +2,7 @@ import re, requests, time, Kronos
 from packaging import version
 from typing import Dict, List, Any
 
+
 class CVEFetcher:
     
     _MAX_RETRIES = 5
@@ -42,7 +43,7 @@ class CVEFetcher:
             
             # Add start index for pagination if needed
             if start_index > 0:
-                params["startIndex"] = start_index
+                params['startIndex'] = start_index
                 
             # Make request with retry logic
             response = None
@@ -220,7 +221,7 @@ class CVE:
         """
         result = []
         if metrics and "cvssMetricV2" in metrics:
-            for metric in metrics["cvssMetricV2"]:
+            for metric in metrics['cvssMetricV2']:
                 result.append(self._parse_cvss2(metric))
         return result
 
@@ -236,7 +237,7 @@ class CVE:
         """
         result = []
         if metrics and "cvssMetricV30" in metrics:
-            for metric in metrics["cvssMetricV30"]:
+            for metric in metrics['cvssMetricV30']:
                 result.append(self._parse_cvss3(metric))
         return result
 
@@ -252,7 +253,7 @@ class CVE:
         """
         result = []
         if metrics and "cvssMetricV31" in metrics:
-            for metric in metrics["cvssMetricV31"]:
+            for metric in metrics['cvssMetricV31']:
                 result.append(self._parse_cvss3(metric))
         return result
 
@@ -268,7 +269,7 @@ class CVE:
         """
         result = []
         if metrics and "cvssMetricV40" in metrics:
-            for metric in metrics["cvssMetricV40"]:
+            for metric in metrics['cvssMetricV40']:
                 result.append(self._parse_cvss4(metric))
         return result
 
@@ -285,7 +286,7 @@ class CVE:
         result = []
         for weakness in weaknesses:
             if "description" in weakness:
-                for desc in weakness["description"]:
+                for desc in weakness['description']:
                     if desc.get("lang") == "en":
                         result.append(desc.get("value", ""))
         return result
@@ -303,9 +304,9 @@ class CVE:
         result = []
         for config in configurations:
             if "nodes" in config:
-                for node in config["nodes"]:
+                for node in config['nodes']:
                     if "cpeMatch" in node:
-                        for cpe_match in node["cpeMatch"]:
+                        for cpe_match in node['cpeMatch']:
                             if cpe_match.get("vulnerable", False):
                                 result.append({
                                     "criteria": cpe_match.get("criteria", ""),
@@ -428,15 +429,15 @@ class CVE:
         Returns:
             True if version is affected, False otherwise
         """
-        if not ver_string or not self._data["cpe"]:
+        if not ver_string or not self._data['cpe']:
             return False
             
         try:
             ver = version.parse(ver_string)
             
-            for cpe in self._data["cpe"]:
+            for cpe in self._data['cpe']:
                 # Extract version from CPE if not wildcard
-                cpe_ver_part = cpe["criteria"].split(":")[5]
+                cpe_ver_part = cpe['criteria'].split(":")[5]
                 if cpe_ver_part == "*":
                     # Wildcard version means potentially affected
                     return True
@@ -453,39 +454,39 @@ class CVE:
                 # Range checks
                 try:
                     # Including start and including end
-                    if (cpe.get("minVerIncluding") and cpe.get("maxVerIncluding") and version.parse(cpe["minVerIncluding"]) <= ver <= version.parse(cpe["maxVerIncluding"])):
+                    if (cpe.get("minVerIncluding") and cpe.get("maxVerIncluding") and version.parse(cpe['minVerIncluding']) <= ver <= version.parse(cpe['maxVerIncluding'])):
                         return True
                         
                     # Excluding start and excluding end
-                    if (cpe.get("minVerExcluding") and cpe.get("maxVerExcluding") and version.parse(cpe["minVerExcluding"]) < ver < version.parse(cpe["maxVerExcluding"])):
+                    if (cpe.get("minVerExcluding") and cpe.get("maxVerExcluding") and version.parse(cpe['minVerExcluding']) < ver < version.parse(cpe['maxVerExcluding'])):
                         return True
                         
                     # Including start and excluding end
-                    if (cpe.get("minVerIncluding") and cpe.get("maxVerExcluding") and version.parse(cpe["minVerIncluding"]) <= ver < version.parse(cpe["maxVerExcluding"])):
+                    if (cpe.get("minVerIncluding") and cpe.get("maxVerExcluding") and version.parse(cpe['minVerIncluding']) <= ver < version.parse(cpe['maxVerExcluding'])):
                         return True
                         
                     # Excluding start and including end
-                    if (cpe.get("minVerExcluding") and cpe.get("maxVerIncluding") and version.parse(cpe["minVerExcluding"]) < ver <= version.parse(cpe["maxVerIncluding"])):
+                    if (cpe.get("minVerExcluding") and cpe.get("maxVerIncluding") and version.parse(cpe['minVerExcluding']) < ver <= version.parse(cpe['maxVerIncluding'])):
                         return True
                         
                     # Only min version specified (including)
                     if cpe.get("minVerIncluding") and not any([cpe.get("maxVerIncluding"), cpe.get("maxVerExcluding")]):
-                        if version.parse(cpe["minVerIncluding"]) <= ver:
+                        if version.parse(cpe['minVerIncluding']) <= ver:
                             return True
                             
                     # Only min version specified (excluding)
                     if cpe.get("minVerExcluding") and not any([cpe.get("maxVerIncluding"), cpe.get("maxVerExcluding")]):
-                        if version.parse(cpe["minVerExcluding"]) < ver:
+                        if version.parse(cpe['minVerExcluding']) < ver:
                             return True
                             
                     # Only max version specified (including)
                     if cpe.get("maxVerIncluding") and not any([cpe.get("minVerIncluding"), cpe.get("minVerExcluding")]):
-                        if ver <= version.parse(cpe["maxVerIncluding"]):
+                        if ver <= version.parse(cpe['maxVerIncluding']):
                             return True
                             
                     # Only max version specified (excluding)
                     if cpe.get("maxVerExcluding") and not any([cpe.get("minVerIncluding"), cpe.get("minVerExcluding")]):
-                        if ver < version.parse(cpe["maxVerExcluding"]):
+                        if ver < version.parse(cpe['maxVerExcluding']):
                             return True
                             
                 except Exception as e:

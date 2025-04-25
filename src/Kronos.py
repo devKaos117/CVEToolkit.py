@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, Union
 from urllib.parse import urlparse, parse_qsl
 
+
 class Logger:
     """
     A comprehensive custom logger for Python applications that supports
@@ -133,7 +134,7 @@ class Logger:
             
         # Add JSON payload for DEBUG level
         if level == self.DEBUG and json_payload:
-            json_str = json.dumps(json_payload, indent=2)
+            json_str = json.dumps(json_payload)
             print(json_str)
             if self.file_handler:
                 self.file_handler.stream.write(json_str + "\n")
@@ -204,7 +205,7 @@ class Logger:
             
             # Safe sanitization of authorization headers
             if "Authorization" in request_headers:
-                request_headers["Authorization"] = "[REDACTED]"
+                request_headers['Authorization'] = "[REDACTED]"
             
             # Parse URL and extract query parameters
             url = response.url
@@ -244,7 +245,7 @@ class Logger:
             message: Optional message to include with the log
         """
         if self.level <= self.DEBUG:
-            http_details = self.format_http_response(response)
+            http_details = self._format_http_response(response)
             self.debug(message, http_details)
 
     def debug(self, msg: Union[str, Exception], json_payload: Optional[Dict[str, Any]] = None) -> None:
@@ -319,11 +320,12 @@ class RateLimiter:
             manager = multiprocessing.Manager()
             self._lock = manager.Lock()
             self._timestamps = manager.list()
+            self._logger.info(f"Multiprocessing RateLimiter initialized with {limit} requests per {time_period} seconds")
         else:
             self._lock = threading.Lock()
             self._timestamps = []
+            self._logger.info(f"Multithreading RateLimiter initialized with {limit} requests per {time_period} seconds")
         
-        self._logger.info(f"RateLimiter initialized with {limit} requests per {time_period} seconds")
     
     def acquire(self):
         """Wait until a request can be made without exceeding the rate limit"""
