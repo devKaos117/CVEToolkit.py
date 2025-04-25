@@ -299,22 +299,29 @@ class Logger:
 
 class RateLimiter:
     """
-    Rate limiter to ensure limits are respected across multiple workers.
+    Rate limiter to ensure limits are respected in multithreading or multiprocessing.
     Implements a token bucket algorithm for rate limiting.
     """
-    def __init__(self, limit: int, time_period: int, logger: Logger):
+    def __init__(self, logger: Logger, limit: int, time_period: int, multiprocessing_mode: bool = False):
         """
         Initialize rate limiter
         
         Args:
             limit: Maximum number of requests allowed in the time period
             time_period: Time period in seconds
+            multiprocessing: True if this is used in a multiprocessing task
         """
         self._limit = limit
         self._time_period = time_period
-        self._timestamps = []
-        self._lock = threading.Lock()
         self._logger = logger
+
+        if multiprocessing_mode:
+            manager = multiprocessing.Manager()
+            self._lock = manager.Lock()
+            self._timestamps = manager.list()
+        else:
+            self._lock = threading.Lock()
+            self._timestamps = []
         
         self._logger.info(f"RateLimiter initialized with {limit} requests per {time_period} seconds")
     
@@ -322,19 +329,29 @@ class RateLimiter:
         """Wait until a request can be made without exceeding the rate limit"""
         with self._lock:
             now = datetime.now()
-            # Remove timestamps older than the time period
-            self._timestamps = [ts for ts in self._timestamps if now - ts < timedelta(seconds=self._time_period)]
+            
+            if isinstance(self._timestamps, list):
+                # Regular list for threading mode
+                self._timestamps = [ts for ts in self._timestamps if now - ts < timedelta(seconds=self._time_period)]
+            else:
+                # Manager list for multiprocessing mode
+                expired_indices = []
+                for i, ts in enumerate(self._timestamps):
+                    if now - ts >= timedelta(seconds=self._time_period):
+                        expired_indices.append(i)
+                
+                # Remove expired timestamps (in reverse order to not affect indices)
+                for i in sorted(expired_indices, reverse=True):
+                    self._timestamps.pop(i)
             
             # If we've reached the limit, wait
             if len(self._timestamps) >= self._limit:
-                oldest = self._timestamps[0]
-                wait_time = (oldest + timedelta(seconds=self._time_period) - now).total_seconds()
-                if wait_time > 0:
-                    self._logger.debug(f"Waiting for {wait_time} seconds")
-                    time.sleep(wait_time)
-                    # Restart acquisition after waiting
-                    return self.acquire()
-            
-            # Add current timestamp and allow the request
+                if len(self._timestamps) > 0:  # Check if list is not empty
+                    oldest = self._timestamps[0]
+                    wait_time = (oldest + timedelta(seconds=self._time_period) - now).total_seconds()
+                    if wait_time > 0:
+                        self._logger.debug(f"RateLimiter triggered for {wait_time} seconds")
+                        time.sleep(wait_time)
+
             self._timestamps.append(now)
             return True

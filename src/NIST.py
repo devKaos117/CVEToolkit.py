@@ -67,6 +67,7 @@ class CVEFetcher:
                         
                 except Exception as e:
                     self._logger.exception(f"Error fetching CVEs: {str(e)}")
+                    self._logger.log_http_response(response)
                     time.sleep(1)
                     
                 retries += 1
@@ -97,12 +98,12 @@ class CVEFetcher:
 
                     try:
                         cve_data = vuln.get("cve", {})
+
+                        cve = CVE(self._logger, cve_data)
                         
                         # Check if the CVE status is accepted
                         if not cve.valid_status(cve_data.get("vulnStatus", "NOT_FOUND")):
                             continue
-
-                        cve = CVE(cve_data, self._logger)
 
                         # Check if this CVE applies to the version
                         if not valid_version or cve.version_included(version):
@@ -134,7 +135,7 @@ class CVE:
     
     ACCEPTED_CVE_STATUS = ["Analyzed", "Published", "Modified"]
 
-    def __init__(self, cve: Dict[str, Any], logger: Kronos.Logger):
+    def __init__(self, logger: Kronos.Logger, cve: Dict[str, Any]):
         """
         Initialize a CVE object from API response.
         
