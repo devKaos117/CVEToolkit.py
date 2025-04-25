@@ -1,8 +1,7 @@
-import json, logging, os, sys, traceback, threading, multiprocessing
-from datetime import datetime
+import json, logging, os, sys, traceback, threading, multiprocessing, time
+from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, Union
 from urllib.parse import urlparse, parse_qsl
-
 
 class Logger:
     """
@@ -20,12 +19,12 @@ class Logger:
     
     # Map level numbers to names
     LEVEL_NAMES = {
-        CRITICAL: 'CRITICAL',
-        ERROR: 'ERROR',
-        WARNING: 'WARNING',
-        INFO: 'INFO',
-        DEBUG: 'DEBUG',
-        NOTSET: 'NOTSET'
+        CRITICAL: "CRITICAL",
+        ERROR: "ERROR",
+        WARNING: "WARNING",
+        INFO: "INFO",
+        DEBUG: "DEBUG",
+        NOTSET: "NOTSET"
     }
     
     def __init__(self, level: int = logging.INFO, log_directory: Optional[str] = None):
@@ -49,7 +48,7 @@ class Logger:
                 os.makedirs(log_directory)
             timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
             log_file_path = os.path.join(log_directory, f"{timestamp}.log")
-            self.file_handler = logging.FileHandler(log_file_path, mode='a')
+            self.file_handler = logging.FileHandler(log_file_path, mode = "a")
     
     def _get_call_info(self) -> tuple:
         """
@@ -59,7 +58,7 @@ class Logger:
             Tuple containing (module_name, filename, line_number)
         """
         frame = sys._getframe(3)  # Go up the stack to find the caller
-        module = frame.f_globals.get('__name__', 'unknown_module')
+        module = frame.f_globals.get("__name__", "unknown_module")
         filename = os.path.basename(frame.f_code.co_filename)
         lineno = frame.f_lineno
         return module, filename, lineno
@@ -96,7 +95,7 @@ class Logger:
             Formatted log message
         """
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-        level_name = self.LEVEL_NAMES.get(level, 'UNKNOWN')
+        level_name = self.LEVEL_NAMES.get(level, "UNKNOWN")
         
         return f"[{timestamp}] {level_name} - {process_name} / {thread_name} ({process_id}) - {module}:{filename}:{lineno} - {msg}"
     
@@ -129,7 +128,7 @@ class Logger:
         
         # Write to file if enabled
         if self.file_handler:
-            self.file_handler.stream.write(formatted_msg + '\n')
+            self.file_handler.stream.write(formatted_msg + "\n")
             self.file_handler.stream.flush()
             
         # Add JSON payload for DEBUG level
@@ -137,7 +136,7 @@ class Logger:
             json_str = json.dumps(json_payload, indent=2)
             print(json_str)
             if self.file_handler:
-                self.file_handler.stream.write(json_str + '\n')
+                self.file_handler.stream.write(json_str + "\n")
                 self.file_handler.stream.flush()
 
     def _parse_query_params(self, url: str) -> Dict[str, Any]:
@@ -158,9 +157,9 @@ class Logger:
         # Process switches (parameters without values)
         # Look for parameters that appear in the query string but not in the dict from parse_qsl
         if parsed_url.query:
-            raw_params = parsed_url.query.split('&')
+            raw_params = parsed_url.query.split("&")
             for param in raw_params:
-                if '=' not in param and param:  # It's a switch
+                if "=" not in param and param:  # It"s a switch
                     query_params[param] = True
                     
         return query_params
@@ -175,16 +174,16 @@ class Logger:
         Returns:
             String with size and unity
         """
-        units = ['B', 'KiB', 'MiB', 'GiB', 'TiB']
+        units = ["B", "KiB", "MiB", "GiB", "TiB"]
         idx = 0
 
         while size >= 1024 and idx < len(units) - 1:
             size /= 1024
             idx += 1
 
-        return f'{size:.2f} {units[idx]}'
+        return f"{size:.2f} {units[idx]}"
 
-    def format_http_response(self, response) -> Dict[str, Any]:
+    def _format_http_response(self, response) -> Dict[str, Any]:
         """
         Format an HTTP response object into a JSON-serializable dictionary.
         Includes query parameters as a dictionary.
@@ -204,36 +203,36 @@ class Logger:
             request_headers = dict(request.headers)
             
             # Safe sanitization of authorization headers
-            if 'Authorization' in request_headers:
-                request_headers['Authorization'] = '[REDACTED]'
+            if "Authorization" in request_headers:
+                request_headers["Authorization"] = "[REDACTED]"
             
             # Parse URL and extract query parameters
             url = response.url
             parsed_url = urlparse(url)
             host = parsed_url.netloc
-            path = parsed_url.path or '/'
+            path = parsed_url.path or "/"
             query_params = self._parse_query_params(url)
                 
             # Format response data
             return {
-                'request': {
-                    'host': host,
-                    'path': path,
-                    'method': request.method,
-                    'headers': request_headers,
-                    'query_params': query_params
+                "request": {
+                    "host": host,
+                    "path": path,
+                    "method": request.method,
+                    "headers": request_headers,
+                    "query_params": query_params
                 },
-                'response': {
-                    'status_code': response.status_code,
-                    'elapsed_time_ms': response.elapsed.total_seconds() * 1000,
-                    'size': response_size,
-                    'headers': dict(response.headers)
+                "response": {
+                    "status_code": response.status_code,
+                    "elapsed_time_ms": response.elapsed.total_seconds() * 1000,
+                    "size": response_size,
+                    "headers": dict(response.headers)
                 }
             }
         except Exception as e:
             return {
-                'error': f"Failed to format HTTP response: {str(e)}",
-                'status_code': getattr(response, 'status_code', None)
+                "error": f"Failed to format HTTP response: {str(e)}",
+                "status_code": getattr(response, "status_code", None)
             }
     
     def log_http_response(self, response, message: str = "HTTP Response") -> None:
@@ -280,9 +279,9 @@ class Logger:
         else:
             exc_info = sys.exc_info()
             
-        if exc_info[0] is not None:  # if an exception is available
+        if exc_info[0] is not None:
             exception_msg = f"{msg}: {exc_info[0].__name__}: {str(exc_info[1])}"
-            tb_str = ''.join(traceback.format_exception(*exc_info))
+            tb_str = "".join(traceback.format_exception(*exc_info))
             full_msg = f"{exception_msg}\n{tb_str}"
             self._log(self.ERROR, full_msg)
         else:
@@ -296,3 +295,46 @@ class Logger:
             level: New logging level
         """
         self.level = level
+
+
+class RateLimiter:
+    """
+    Rate limiter to ensure limits are respected across multiple workers.
+    Implements a token bucket algorithm for rate limiting.
+    """
+    def __init__(self, limit: int, time_period: int, logger: Logger):
+        """
+        Initialize rate limiter
+        
+        Args:
+            limit: Maximum number of requests allowed in the time period
+            time_period: Time period in seconds
+        """
+        self._limit = limit
+        self._time_period = time_period
+        self._timestamps = []
+        self._lock = threading.Lock()
+        self._logger = logger
+        
+        self._logger.info(f"RateLimiter initialized with {limit} requests per {time_period} seconds")
+    
+    def acquire(self):
+        """Wait until a request can be made without exceeding the rate limit"""
+        with self._lock:
+            now = datetime.now()
+            # Remove timestamps older than the time period
+            self._timestamps = [ts for ts in self._timestamps if now - ts < timedelta(seconds=self._time_period)]
+            
+            # If we've reached the limit, wait
+            if len(self._timestamps) >= self._limit:
+                oldest = self._timestamps[0]
+                wait_time = (oldest + timedelta(seconds=self._time_period) - now).total_seconds()
+                if wait_time > 0:
+                    self._logger.debug(f"Waiting for {wait_time} seconds")
+                    time.sleep(wait_time)
+                    # Restart acquisition after waiting
+                    return self.acquire()
+            
+            # Add current timestamp and allow the request
+            self._timestamps.append(now)
+            return True
