@@ -1,4 +1,4 @@
-import re, requests, time, Kronos
+import re, requests, time, Kronos, config_utils
 from packaging import version
 from typing import Dict, List, Any, Optional
 
@@ -8,30 +8,15 @@ class CVEFetcher:
     Class to fetch CVE's from NIST API
     """
     
-    def __init__(self, logger: Kronos.Logger, rate_limiter: Kronos.RateLimiter, config: Optional[Dict[str, Any]] = {}):
+    def __init__(self, logger: Kronos.Logger, rate_limiter: Kronos.RateLimiter, config: Optional[Dict[str, Any]] = None):
         self._logger = logger
-        self.config = self._import_config(config)
         self._rate_limiter = rate_limiter
-        self._logger.info("CVEFetcher initialized")
-
-    def _import_config(self, input: Dict[str, Dict[str, Any]]):
-        """
-        Import configurations from given dictionary, falling to default values
-
-        Args:
-            input: recieved dictionary
-
-        Returns:
-            Dict: configs
-        """
-        config = {}
         
-        config['max_retries'] = input.get('max_retries', 5)
-        config['NIST_base_url'] = input.get('NIST_base_url', "https://services.nvd.nist.gov/rest/json/cves/2.0")
-        config['accepted_cve_status'] = input.get('accepted_cve_status', ["Analyzed", "Published", "Modified"])
-        config['accepted_languages'] = input.get('accepted_languages', ["en", "es"])
-
-        return config
+        # Import configuration with default values
+        default_config = config_utils.set_default_config()["cve_fetching"]
+        self.config = config_utils.import_config(config, default_config)
+        
+        self._logger.info("CVEFetcher initialized")
 
     def fetch(self, session: requests.Session, keywords: str, version: str) -> List[Dict[str, Any]]:
         """Fetch CVEs for a software by keywords and version."""
@@ -77,7 +62,7 @@ class CVEFetcher:
                         self._logger.error(f"Unexpected status code: {response.status_code}")
                         break
                 except requests.RequestException as e:
-                    self._logger.exception(f"Network rrror fetching CVEs: {str(e)}")       
+                    self._logger.exception(f"Network error fetching CVEs: {str(e)}")       
                 except Exception as e:
                     self._logger.exception(f"Error fetching CVEs: {str(e)}")
                     self._logger.log_http_response(response)
@@ -87,7 +72,7 @@ class CVEFetcher:
                 
             # If all retries failed, continue to next batch
             if response is None or response.status_code != 200:
-                self._logger.error(f"Failed to fetch CVEs after {self.config["max_retries"]} retries")
+                self._logger.error(f"Failed to fetch CVEs after {self.config['max_retries']} retries")
                 break
 
             self._logger.log_http_response(message=f"Fetched CVEs, paginating on {start_index} / {total_results}", response=response)
@@ -126,7 +111,7 @@ class CVEFetcher:
                 self._logger.exception(f"Error parsing response: {str(e)}")
                 break
         
-        self._logger.info(f"{len(results)} vulnerabilites accepted from {total_results} recieved")
+        self._logger.info(f"{len(results)} vulnerabilities accepted from {total_results} received")
 
         return results
 
@@ -139,15 +124,24 @@ class CVE:
     CVSS2, CVSS3, CVSS3.1, and CVSS4 schemas.
     """
 
-    def __init__(self, logger: Kronos.Logger, cve: Dict[str, Any], config: Optional[Dict[str, Any]] = {}):
+    def __init__(self, logger: Kronos.Logger, cve: Dict[str, Any], config: Optional[Dict[str, Any]] = None):
         """
         Initialize a CVE object from API response.
         
         Args:
+            logger: Logger instance
             cve: The CVE data portion from the NIST API response
+            config: Configuration dictionary
         """
         self._logger = logger
-        self.config = self._import_config(config)
+        
+        # Import configuration with default values
+        default_config = {
+            "accepted_cve_status": ["Analyzed", "Published", "Modified"],
+            "accepted_languages": ["en", "es"]
+        }
+        self.config = config_utils.import_config(config, default_config)
+        
         self._data = {
             "id": cve.get("id", "CVE-0000-0000"),
             "status": cve.get("vulnStatus", "?"),
@@ -161,23 +155,6 @@ class CVE:
             "cwe": self._get_cwe(cve.get("weaknesses", [])),
             "cpe": self._get_cpe(cve.get("configurations", []))
         }
-    
-    def _import_config(self, input: Dict[str, Dict[str, Any]]):
-        """
-        Import configurations from given dictionary, falling to default values
-
-        Args:
-            input: recieved dictionary
-
-        Returns:
-            Dict: configs
-        """
-        config = {}
-        
-        config['accepted_cve_status'] = input.get('accepted_cve_status', ["Analyzed", "Published", "Modified"])
-        config['accepted_languages'] = input.get('accepted_languages', ["en", "es"])
-
-        return config
 
     def get_data(self) -> Dict[str, Any]:
         """
@@ -477,7 +454,7 @@ class CVE:
                     # Excluding start and including end
                     if (cpe.get("minVerExcluding") and cpe.get("maxVerIncluding") and version.parse(cpe['minVerExcluding']) < ver <= version.parse(cpe['maxVerIncluding'])):
                         return True
-                        
+                    
                     # Only min version specified (including)
                     if cpe.get("minVerIncluding") and not any([cpe.get("maxVerIncluding"), cpe.get("maxVerExcluding")]):
                         if version.parse(cpe['minVerIncluding']) <= ver:
