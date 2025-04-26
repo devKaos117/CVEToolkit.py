@@ -14,7 +14,7 @@
 ## About <a name = "about"></a>
 
 ### Summary <a name = "about-summary"></a>
-Python tool for fetching and analyzing CVE (Common Vulnerabilities and Exposures) information from the NIST database with multithreaded and multiprocessing architecture for efficiently processing multiple software entries, besides integration to <a href="https://github.com/devKaos117/Kronos.py" target="_blank">Kronos.py</a>.
+Python tool for fetching and analyzing CVE (Common Vulnerabilities and Exposures) information from the NIST API. Implements multithreaded and multiprocessing architecture for efficiently processing multiple software entries. Integrated to <a href="https://github.com/devKaos117/Kronos.py" target="_blank">Kronos.py</a>.
 
 ### Usage <a name = "about-usage"></a>
 ```python
