@@ -6,6 +6,10 @@
     "readOnly": true,
     "type": "object",
     "properties": {
+        "source": {
+            "description": "CVE source",
+            "type": "string"
+        },
         "score": {
             "description": "CVE numeric scores",
             "type": "object",

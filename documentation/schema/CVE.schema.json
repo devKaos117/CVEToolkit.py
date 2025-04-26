@@ -36,23 +36,31 @@
             "properties": {
                 "2": {
                     "description": "CVSS v2 metrics",
-                    "type": "object",
-                    "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv2.schema.json"
+                    "type": "array",
+                    "items": {
+                        "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv2.schema.json"
+                    }
                 }, 
                 "3": {
                     "description": "CVSS v3 metrics",
-                    "type": "object",
-                    "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv3.schema.json"
+                    "type": "array",
+                    "items": {
+                        "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv3.schema.json"
+                    }
                 }, 
                 "3.1": {
                     "description": "CVSS v3.1 metrics",
-                    "type": "object",
-                    "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv3.schema.json"
+                    "type": "array",
+                    "items": {
+                        "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv3.schema.json"
+                    }
                 }, 
                 "4": {
                     "description": "CVSS v4 metrics",
-                    "type": "object",
-                    "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv4.schema.json"
+                    "type": "array",
+                    "items": {
+                        "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv4.schema.json"
+                    }
                 }
             },
             "required": ["2", "3", "3.1", "4"]

@@ -6,6 +6,10 @@
     "readOnly": true,
     "type": "object",
     "properties": {
+        "source": {
+            "description": "CVE source",
+            "type": "string"
+        },
         "vectorString": {
             "description": "The abbreviated CVSS version followed by most of the metrics",
             "type": "string",

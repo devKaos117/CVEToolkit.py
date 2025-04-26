@@ -1,19 +1,15 @@
 import requests, multiprocessing, Kronos, NIST
 from queue import Queue, Empty
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 
 class CVEEnumerator:
     """
     Class to enumerate CVEs, either in multithreading or multiprocessing.
     """
-
-    _WORKER_COUNT = 8
-    _RATE_LIMIT = 50
-    _RATE_LIMIT_PERIOD = 30 # seconds
     
-    def __init__(self, logger: Kronos.Logger, api_key: str):
+    def __init__(self, logger: Kronos.Logger, api_key: str, config: Optional[Dict[str, Dict[str, Any]]] = {}):
         """
         Initialize the CVE enumerator.
         
@@ -23,6 +19,34 @@ class CVEEnumerator:
         """
         self._api_key = api_key
         self._logger = logger
+        self._IMPORTED_CONFIG = self._import_config(config)
+        self.config = self._IMPORTED_CONFIG['multitasking']
+        
+    def _import_config(self, input: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        """
+        Import configurations from given dictionary, falling to default values
+
+        Args:
+            input: recieved dictionary
+
+        Returns:
+            Dict: configs
+        """
+        config = {}
+        # Multitasking
+        config['multitasking'] = {}
+        config['multitasking']['worker_count'] = input.get('multitasking', {}).get('worker_count', 8)
+        config['multitasking']['rate_limit'] = input.get('multitasking', {}).get('rate_limit', 50)
+        config['multitasking']['rate_limit_period'] = input.get('multitasking', {}).get('rate_limit_period', 30)
+
+        # CVE fetching
+        config['cve_fetching'] = {}
+        config['cve_fetching']['max_retries'] = input.get('cve_fetching', {}).get('max_retries', 5)
+        config['cve_fetching']['NIST_base_url'] = input.get('cve_fetching', {}).get('NIST_base_url', "https://services.nvd.nist.gov/rest/json/cves/2.0")
+        config['cve_fetching']['accepted_cve_status'] = input.get('cve_fetching', {}).get('accepted_cve_status', ["Analyzed", "Published", "Modified"])
+        config['cve_fetching']['accepted_languages'] = input.get('cve_fetching', {}).get('accepted_languages', ["en", "es"])
+
+        return config
         
     def _create_session(self) -> requests.Session:
         """
@@ -112,8 +136,8 @@ class CVEEnumerator:
         processed_set = manager.dict()
 
         # Create multiprocessing rate limiter and initialize fetcher
-        rate_limiter = Kronos.RateLimiter(self._logger, self._RATE_LIMIT, self._RATE_LIMIT_PERIOD, True)
-        fetcher = NIST.CVEFetcher(self._logger, rate_limiter)
+        rate_limiter = Kronos.RateLimiter(self._logger, self.config['rate_limit'], self.config['rate_limit_period'], True)
+        fetcher = NIST.CVEFetcher(self._logger, rate_limiter, self._IMPORTED_CONFIG["cve_fetching"])
 
         # Fill the queue with work items
         for sw_id, software in softwares.items():
@@ -124,7 +148,7 @@ class CVEEnumerator:
 
         # Create and start workers
         processes = []
-        for _ in range(min(self._WORKER_COUNT, len(softwares))):
+        for _ in range(min(self.config['worker_count'], len(softwares))):
             p = multiprocessing.Process(target=self._worker_function, args=(work_queue, results_dict, processed_set, session, fetcher))
             processes.append(p)
             p.start()
@@ -186,14 +210,14 @@ class CVEEnumerator:
         results = {}
 
         # Createg multithreading rate limiter and initialize fetcher
-        rate_limiter = Kronos.RateLimiter(self._logger, self._RATE_LIMIT, self._RATE_LIMIT_PERIOD, False)
-        fetcher = NIST.CVEFetcher(self._logger, rate_limiter)
+        rate_limiter = Kronos.RateLimiter(self._logger, self.config['rate_limit'], self.config['multitasking']['rate_limit_period'], False)
+        fetcher = NIST.CVEFetcher(self._logger, rate_limiter, self._IMPORTED_CONFIG["cve_fetching"])
 
         # Create session
         session = self._create_session()
         
         # Use ThreadPoolExecutor for better performance with I/O bound operations
-        with ThreadPoolExecutor(max_workers = self._WORKER_COUNT) as executor:
+        with ThreadPoolExecutor(max_workers = self.config['multitasking']['worker_count']) as executor:
             # Submit all software entries for processing
             future_to_id = { executor.submit(self._process_software, sw_id, software, session, fetcher): sw_id for sw_id, software in softwares.items() }
             

@@ -1,26 +1,37 @@
 import re, requests, time, Kronos
 from packaging import version
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 
 class CVEFetcher:
+    """
+    Class to fetch CVE's from NIST API
+    """
     
-    _MAX_RETRIES = 5
-    _BASE_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
-    
-    def __init__(self, logger: Kronos.Logger, rate_limiter: Kronos.RateLimiter):
+    def __init__(self, logger: Kronos.Logger, rate_limiter: Kronos.RateLimiter, config: Optional[Dict[str, Any]] = {}):
         self._logger = logger
+        self.config = self._import_config(config)
         self._rate_limiter = rate_limiter
         self._logger.info("CVEFetcher initialized")
 
-    def _is_valid_version(self, version_str: str) -> bool:
-        """Check if a version string is valid."""
+    def _import_config(self, input: Dict[str, Dict[str, Any]]):
+        """
+        Import configurations from given dictionary, falling to default values
 
-        if not version_str or version_str.strip() == "":
-            return False
-            
-        version_pattern = r"^[0-9]+(\.[0-9]+)*([a-zA-Z-_][0-9a-zA-Z-_]*)?$"
-        return bool(re.match(version_pattern, version_str))
+        Args:
+            input: recieved dictionary
+
+        Returns:
+            Dict: configs
+        """
+        config = {}
+        
+        config['max_retries'] = input.get('max_retries', 5)
+        config['NIST_base_url'] = input.get('NIST_base_url', "https://services.nvd.nist.gov/rest/json/cves/2.0")
+        config['accepted_cve_status'] = input.get('accepted_cve_status', ["Analyzed", "Published", "Modified"])
+        config['accepted_languages'] = input.get('accepted_languages', ["en", "es"])
+
+        return config
 
     def fetch(self, session: requests.Session, keywords: str, version: str) -> List[Dict[str, Any]]:
         """Fetch CVEs for a software by keywords and version."""
@@ -29,7 +40,7 @@ class CVEFetcher:
         total_results = 1
         
         # Check if version is valid
-        valid_version = self._is_valid_version(version)
+        valid_version = CVE.is_valid_version(version)
         
         while start_index < total_results:
             # Respect rate limit before making request
@@ -49,9 +60,9 @@ class CVEFetcher:
             response = None
             retries = 0
             
-            while retries < self._MAX_RETRIES:
+            while retries < self.config["max_retries"]:
                 try:
-                    response = session.get(self._BASE_URL, params=params)
+                    response = session.get(self.config["NIST_base_url"], params=params)
                     
                     # Handle different status codes
                     if response.status_code == 200:
@@ -65,7 +76,8 @@ class CVEFetcher:
                     else:
                         self._logger.error(f"Unexpected status code: {response.status_code}")
                         break
-                        
+                except requests.RequestException as e:
+                    self._logger.exception(f"Network rrror fetching CVEs: {str(e)}")       
                 except Exception as e:
                     self._logger.exception(f"Error fetching CVEs: {str(e)}")
                     self._logger.log_http_response(response)
@@ -75,7 +87,7 @@ class CVEFetcher:
                 
             # If all retries failed, continue to next batch
             if response is None or response.status_code != 200:
-                self._logger.error(f"Failed to fetch CVEs after {self._MAX_RETRIES} retries")
+                self._logger.error(f"Failed to fetch CVEs after {self.config["max_retries"]} retries")
                 break
 
             self._logger.log_http_response(message=f"Fetched CVEs, paginating on {start_index} / {total_results}", response=response)
@@ -89,19 +101,14 @@ class CVEFetcher:
                 total_results = data.get("totalResults", 0)
                 results_per_page = data.get("resultsPerPage", 2000)
                 
-                idx = 0
                 # Process each vulnerability
                 for vuln in vulnerabilities:
-                    self._logger.debug("Vulnerability recieved", CVE.log_obj(idx, vuln))
-                    idx += 1
-                    
                     if len(vuln.keys()) > 1:
                         self._logger.warning(f"Unsupported vulnerability returned")
 
                     try:
                         cve_data = vuln.get("cve", {})
-
-                        cve = CVE(self._logger, cve_data)
+                        cve = CVE(self._logger, cve_data, self.config)
                         
                         # Check if the CVE status is accepted
                         if not cve.valid_status(cve_data.get("vulnStatus", "NOT_FOUND")):
@@ -115,7 +122,6 @@ class CVEFetcher:
                 
                 # Update start index for next page
                 start_index += results_per_page
-                
             except Exception as e:
                 self._logger.exception(f"Error parsing response: {str(e)}")
                 break
@@ -132,11 +138,8 @@ class CVE:
     Transforms the API response into a structured format with support for
     CVSS2, CVSS3, CVSS3.1, and CVSS4 schemas.
     """
-    
-    ACCEPTED_CVE_STATUS = ["Analyzed", "Published", "Modified"]
-    ACCEPTED_LANGUAGES = ["en", "es"]
 
-    def __init__(self, logger: Kronos.Logger, cve: Dict[str, Any]):
+    def __init__(self, logger: Kronos.Logger, cve: Dict[str, Any], config: Optional[Dict[str, Any]] = {}):
         """
         Initialize a CVE object from API response.
         
@@ -144,6 +147,7 @@ class CVE:
             cve: The CVE data portion from the NIST API response
         """
         self._logger = logger
+        self.config = self._import_config(config)
         self._data = {
             "id": cve.get("id", "CVE-0000-0000"),
             "status": cve.get("vulnStatus", "?"),
@@ -158,6 +162,23 @@ class CVE:
             "cpe": self._get_cpe(cve.get("configurations", []))
         }
     
+    def _import_config(self, input: Dict[str, Dict[str, Any]]):
+        """
+        Import configurations from given dictionary, falling to default values
+
+        Args:
+            input: recieved dictionary
+
+        Returns:
+            Dict: configs
+        """
+        config = {}
+        
+        config['accepted_cve_status'] = input.get('accepted_cve_status', ["Analyzed", "Published", "Modified"])
+        config['accepted_languages'] = input.get('accepted_languages', ["en", "es"])
+
+        return config
+
     def get_data(self) -> Dict[str, Any]:
         """
         Return the processed CVE data.
@@ -166,33 +187,6 @@ class CVE:
             Dict containing structured CVE information
         """
         return self._data
-
-    @staticmethod
-    def log_obj(i: int, vulnerability: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Create a log object for debugging.
-        
-        Args:
-            i: Index of vulnerability
-            vulnerability: Vulnerability data
-            
-        Returns:
-            Dict with summarized vulnerability info for logging
-        """
-        cve = vulnerability.get("cve", {})
-        return {
-            "idx": i,
-            "keys": list(vulnerability.keys()),
-            "cve": {
-                "keys": list(cve.keys()),
-                "id": cve.get("id", ""),
-                "descriptions": len(cve.get("descriptions", [])),
-                "metrics": len(cve.get("metrics", {})),
-                "weaknesses": len(cve.get("weaknesses", [])),
-                "configurations": len(cve.get("configurations", [])),
-                "references": len(cve.get("references", []))
-            }
-        }
 
     def _get_descriptions(self, descriptions: List[Dict[str, str]]) -> Dict[str, str]:
         """
@@ -206,7 +200,7 @@ class CVE:
         """
         result = {}
         for desc in descriptions:
-            if desc.get("lang") in self.ACCEPTED_LANGUAGES:
+            if desc.get("lang") in self.config["accepted_languages"]:
                 result[desc.get("lang")] = desc.get("value")
         return result
     
@@ -288,7 +282,7 @@ class CVE:
         for weakness in weaknesses:
             if "description" in weakness:
                 for desc in weakness['description']:
-                    if desc.get("lang") in self.ACCEPTED_LANGUAGES:
+                    if desc.get("lang") in self.config["accepted_languages"]:
                         result.append(desc.get("value", ""))
         return result
 
@@ -330,6 +324,7 @@ class CVE:
         """
         cvss_data = d.get("cvssData", {})
         return {
+            "source": d.get("source", "?"),
             "score": {
                 "exploitability": d.get("exploitabilityScore", 0),
                 "impact": d.get("impactScore", 0),
@@ -360,6 +355,7 @@ class CVE:
         """
         cvss_data = d.get("cvssData", {})
         return {
+            "source": d.get("source", "?"),
             "score": {
                 "exploitability": d.get("exploitabilityScore", 0),
                 "impact": d.get("impactScore", 0),
@@ -390,6 +386,7 @@ class CVE:
         """
         cvss_data = d.get("cvssData", {})
         return {
+            "source": d.get("source", "?"),
             "vectorString": cvss_data.get("vectorString", "?"),
             "baseScore": cvss_data.get("baseScore", 0),
             "baseSeverity": cvss_data.get("baseSeverity", "?"),
@@ -420,6 +417,15 @@ class CVE:
             "responseEffort": cvss_data.get("vulnerabilityResponseEffort", "?"),
             "exploitMaturity": cvss_data.get("exploitMaturity", "?"),
         }
+    
+    @staticmethod
+    def is_valid_version(version_str: str) -> bool:
+        """Check if a version string is valid."""
+
+        if not version_str or version_str.strip() == "":
+            return False
+            
+        return bool(re.match(version.VERSION_PATTERN, version_str))
 
     def version_included(self, ver_string: str) -> bool:
         """
@@ -445,13 +451,14 @@ class CVE:
                     return True
                 
                 # Exact match with CPE version
-                try:
-                    criteria_version = version.parse(cpe_ver_part)
-                    if criteria_version == ver:
-                        return True
-                except Exception as e:
-                    self._logger.exception(e)
-                    pass
+                if CVE.is_valid_version(cpe_ver_part):
+                    try:
+                        criteria_version = version.parse(cpe_ver_part)
+                        if criteria_version == ver:
+                            return True
+                    except Exception as e:
+                        self._logger.exception(f"Error parsing CPE version ({cpe}): {e}")
+                        pass
                     
                 # Range checks
                 try:
@@ -497,9 +504,9 @@ class CVE:
                     continue
                     
         except Exception as e:
-            # If the version string can't be parsed, return False
-            self._logger.exception(e)
-            return False
+            # If the version string can't be parsed, return True
+            self._logger.exception(f"Error parsing recieved version ({ver}): {e}")
+            return True
             
         return False
     
@@ -513,4 +520,4 @@ class CVE:
         Returns:
             True if the status is in the defined array
         """
-        return status in self.ACCEPTED_CVE_STATUS
+        return status in self.config["accepted_cve_status"]

@@ -1,0 +1,13 @@
+{
+    "multitasking": {
+        "worker_count": 8,
+        "rate_limit": 50,
+        "rate_limit_period": 30
+    },
+    "cve_fetching": {
+        "max_retries": 5,
+        "NIST_base_url": "https://services.nvd.nist.gov/rest/json/cves/2.0",
+        "accepted_cve_status": ["Analyzed", "Published", "Modified"],
+        "accepted_languages": ["en", "es"]
+    }
+}
