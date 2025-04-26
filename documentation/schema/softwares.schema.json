@@ -1,0 +1,29 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/softwares.schema.json",
+    "title": "Softwares dictionary",
+    "description": "The minimum structure fields for the softwares dictionary entry, any other field is allowed and remains unchanged",
+    "type": "object",
+    "properties": {
+        "id": {
+            "description": "Software entry id",
+            "type": "string"
+        },
+        "name": {
+            "description": "Software name",
+            "type": "string"
+        },
+        "version": {
+            "description": "Software version",
+            "type": "string",
+            "pattern": "^[0-9]+(\\.[0-9]+)*([a-zA-Z-_][0-9a-zA-Z-_]*)?$"
+        },
+        "cve": {
+            "description": "Found CVE's added by the CVEEnumerator",
+            "type": "object",
+            "readOnly": true,
+            "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVE.schema.json"
+        }
+    },
+    "required": ["id", "name", "version"]
+}

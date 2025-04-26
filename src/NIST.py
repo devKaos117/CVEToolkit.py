@@ -93,7 +93,8 @@ class CVEFetcher:
                 # Process each vulnerability
                 for vuln in vulnerabilities:
                     self._logger.debug("Vulnerability recieved", CVE.log_obj(idx, vuln))
-
+                    idx += 1
+                    
                     if len(vuln.keys()) > 1:
                         self._logger.warning(f"Unsupported vulnerability returned")
 
@@ -111,8 +112,6 @@ class CVEFetcher:
                             results.append(cve.get_data())
                     except Exception as e:
                         self._logger.exception(f"Error processing CVE: {str(e)}")
-                    finally:
-                        idx += 1
                 
                 # Update start index for next page
                 start_index += results_per_page
@@ -135,6 +134,7 @@ class CVE:
     """
     
     ACCEPTED_CVE_STATUS = ["Analyzed", "Published", "Modified"]
+    ACCEPTED_LANGUAGES = ["en", "es"]
 
     def __init__(self, logger: Kronos.Logger, cve: Dict[str, Any]):
         """
@@ -145,9 +145,9 @@ class CVE:
         """
         self._logger = logger
         self._data = {
-            "id": cve.get("id", "NOT_FOUND"),
-            "status": cve.get("vulnStatus", "NOT_FOUND"),
-            "description": self._get_description(cve.get("descriptions", [])),
+            "id": cve.get("id", "CVE-0000-0000"),
+            "status": cve.get("vulnStatus", "?"),
+            "descriptions": self._get_descriptions(cve.get("descriptions", {})),
             "cvss": {
                 "2": self._get_cvss2(cve.get("metrics", {})),
                 "3": self._get_cvss3(cve.get("metrics", {})),
@@ -194,20 +194,21 @@ class CVE:
             }
         }
 
-    def _get_description(self, descriptions: List[Dict[str, str]]) -> str:
+    def _get_descriptions(self, descriptions: List[Dict[str, str]]) -> Dict[str, str]:
         """
-        Get the description text in English.
+        Get the description texts in the accepted languages.
         
         Args:
             descriptions: List of description objects
             
         Returns:
-            Description text in English, or message if not found
+            Description texts or empty object
         """
+        result = {}
         for desc in descriptions:
-            if desc.get("lang") == "en":
-                return desc.get("value", "")
-        return "UNKNOWN LANGUAGE"
+            if desc.get("lang") in self.ACCEPTED_LANGUAGES:
+                result[desc.get("lang")] = desc.get("value")
+        return result
     
     def _get_cvss2(self, metrics: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
@@ -275,7 +276,7 @@ class CVE:
 
     def _get_cwe(self, weaknesses: List[Dict[str, Any]]) -> List[str]:
         """
-        Get CWE identifiers from weaknesses, using English descriptions only.
+        Get CWE identifiers from weaknesses, in accepted language descriptions only.
         
         Args:
             weaknesses: List of weakness objects
@@ -287,7 +288,7 @@ class CVE:
         for weakness in weaknesses:
             if "description" in weakness:
                 for desc in weakness['description']:
-                    if desc.get("lang") == "en":
+                    if desc.get("lang") in self.ACCEPTED_LANGUAGES:
                         result.append(desc.get("value", ""))
         return result
 
@@ -332,18 +333,18 @@ class CVE:
             "score": {
                 "exploitability": d.get("exploitabilityScore", 0),
                 "impact": d.get("impactScore", 0),
-                "base": cvss_data.get("baseScore", 0),    
+                "base": cvss_data.get("baseScore", 0)
             },
             "impact": {
-                "C": cvss_data.get("confidentialityImpact", ""),
-                "I": cvss_data.get("integrityImpact", ""),
-                "A": cvss_data.get("availabilityImpact", "")
+                "C": cvss_data.get("confidentialityImpact", "?"),
+                "I": cvss_data.get("integrityImpact", "?"),
+                "A": cvss_data.get("availabilityImpact", "?")
             },
-            "vectorString": cvss_data.get("vectorString", ""),
-            "accessVector": cvss_data.get("accessVector", ""),
-            "accessComplexity": cvss_data.get("accessComplexity", ""),
-            "authentication": cvss_data.get("authentication", ""),
-            "baseSeverity": d.get("baseSeverity", ""),
+            "accessVector": cvss_data.get("accessVector", "?"),
+            "accessComplexity": cvss_data.get("accessComplexity", "?"),
+            "authentication": cvss_data.get("authentication", "?"),
+            "vectorString": cvss_data.get("vectorString", "?"),
+            "baseSeverity": d.get("baseSeverity", "?"),
             "userInteractionRequired": d.get("userInteractionRequired", False)
         }
 
@@ -365,16 +366,16 @@ class CVE:
                 "base": cvss_data.get("baseScore", 0)
             },
             "impact": {
-                "C": cvss_data.get("confidentialityImpact", ""),
-                "I": cvss_data.get("integrityImpact", ""),
-                "A": cvss_data.get("availabilityImpact", "")
+                "C": cvss_data.get("confidentialityImpact", "?"),
+                "I": cvss_data.get("integrityImpact", "?"),
+                "A": cvss_data.get("availabilityImpact", "?")
             },
-            "baseSeverity": cvss_data.get("baseSeverity", ""),
-            "vectorString": cvss_data.get("vectorString", ""),
-            "attackVector": cvss_data.get("attackVector", ""),
-            "attackComplexity": cvss_data.get("attackComplexity", ""),
-            "privilegesRequired": cvss_data.get("privilegesRequired", ""),
-            "userInteraction": cvss_data.get("userInteraction", ""),
+            "baseSeverity": cvss_data.get("baseSeverity", "?"),
+            "vectorString": cvss_data.get("vectorString", "?"),
+            "attackVector": cvss_data.get("attackVector", "?"),
+            "attackComplexity": cvss_data.get("attackComplexity", "?"),
+            "privilegesRequired": cvss_data.get("privilegesRequired", "?"),
+            "userInteraction": cvss_data.get("userInteraction", "?")
         }
     
     def _parse_cvss4(self, d: Dict[str, Any]) -> Dict[str, Any]:
@@ -389,34 +390,35 @@ class CVE:
         """
         cvss_data = d.get("cvssData", {})
         return {
-            "vectorString": cvss_data.get("vectorString", ""),
+            "vectorString": cvss_data.get("vectorString", "?"),
             "baseScore": cvss_data.get("baseScore", 0),
-            "baseSeverity": cvss_data.get("baseSeverity", ""),
-            "attackVector": cvss_data.get("attackVector", ""),
-            "attackComplexity": cvss_data.get("attackComplexity", ""),
-            "attackRequirements": cvss_data.get("attackRequirements", ""),
-            "privilegesRequired": cvss_data.get("privilegesRequired", ""),
-            "userInteraction": cvss_data.get("userInteraction", ""),
+            "baseSeverity": cvss_data.get("baseSeverity", "?"),
+            "attackVector": cvss_data.get("attackVector", "?"),
+            "attackComplexity": cvss_data.get("attackComplexity", "?"),
+            "attackRequirements": cvss_data.get("attackRequirements", "?"),
+            "privilegesRequired": cvss_data.get("privilegesRequired", "?"),
+            "userInteraction": cvss_data.get("userInteraction", "?"),
             "impact": {
                 "vuln": {
-                    "C": cvss_data.get("vulnConfidentialityImpact", ""),
-                    "I": cvss_data.get("vulnIntegrityImpact", ""),
-                    "A": cvss_data.get("vulnAvailabilityImpact", "")
+                    "C": cvss_data.get("vulnConfidentialityImpact", "?"),
+                    "I": cvss_data.get("vulnIntegrityImpact", "?"),
+                    "A": cvss_data.get("vulnAvailabilityImpact", "?")
                 },
                 "sub": {
-                    "C": cvss_data.get("subConfidentialityImpact", ""),
-                    "I": cvss_data.get("subIntegrityImpact", ""),
-                    "A": cvss_data.get("subAvailabilityImpact", "")
+                    "C": cvss_data.get("subConfidentialityImpact", "?"),
+                    "I": cvss_data.get("subIntegrityImpact", "?"),
+                    "A": cvss_data.get("subAvailabilityImpact", "?")
                 },
                 "mod": {
-                    "C": cvss_data.get("modifiedVulnConfidentialityImpact", ""),
-                    "I": cvss_data.get("modifiedVulnIntegrityImpact", ""),
-                    "A": cvss_data.get("modifiedVulnAvailabilityImpact", "")
+                    "C": cvss_data.get("modifiedVulnConfidentialityImpact", "?"),
+                    "I": cvss_data.get("modifiedVulnIntegrityImpact", "?"),
+                    "A": cvss_data.get("modifiedVulnAvailabilityImpact", "?")
                 }
             },
-            "automatable": cvss_data.get("Automatable", ""),
-            "valueDensity": cvss_data.get("valueDensity", ""),
-            "responseEffort": cvss_data.get("vulnerabilityResponseEffort", "")
+            "automatable": cvss_data.get("Automatable", "?"),
+            "valueDensity": cvss_data.get("valueDensity", "?"),
+            "responseEffort": cvss_data.get("vulnerabilityResponseEffort", "?"),
+            "exploitMaturity": cvss_data.get("exploitMaturity", "?"),
         }
 
     def version_included(self, ver_string: str) -> bool:

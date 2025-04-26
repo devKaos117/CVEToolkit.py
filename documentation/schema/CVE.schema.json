@@ -1,0 +1,104 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVE.schema.json",
+    "title": "CVE obj",
+    "description": "A object generated from a CVE entry",
+    "readOnly": true,
+    "type": "object",
+    "properties": {
+        "id": {
+            "description": "CVE id",
+            "type": "string",
+            "pattern": "^CVE-[0-9]{4}-[0-9]{1,}$",
+            "default": "CVE-0000-0000"
+        },
+        "status": {
+            "enum": ["Analyzed", "Published", "Modified", "?"]
+        },
+        "descriptions": {
+            "description": "CVE description texts",
+            "type": "object",
+            "properties": {
+                "en": {
+                    "description": "CVE description text in english",
+                    "type": "string"
+                },
+                "es": {
+                    "description": "CVE description text in spanish",
+                    "type": "string"
+                }
+            },
+            "default": {}
+        },
+        "cvss": {
+            "description": "CVSS metrics for the CVE",
+            "type": "object",
+            "properties": {
+                "2": {
+                    "description": "CVSS v2 metrics",
+                    "type": "object",
+                    "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv2.schema.json"
+                }, 
+                "3": {
+                    "description": "CVSS v3 metrics",
+                    "type": "object",
+                    "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv3.schema.json"
+                }, 
+                "3.1": {
+                    "description": "CVSS v3.1 metrics",
+                    "type": "object",
+                    "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv3.schema.json"
+                }, 
+                "4": {
+                    "description": "CVSS v4 metrics",
+                    "type": "object",
+                    "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv4.schema.json"
+                }
+            },
+            "required": ["2", "3", "3.1", "4"]
+        },
+        "cwe": {
+            "description": "List of CWEs decriptions",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "default": []
+        },
+        "cpe": {
+            "description": "List of CPEs criteria and version range",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "criteria": {
+                        "description": "CPE criteria",
+                        "type": "string"
+                    },
+                    "minVerIncluding": {
+                        "description": "Minimum version, including",
+                        "type": "string",
+                        "pattern": "^[0-9]+(\\.[0-9]+)*([a-zA-Z-_][0-9a-zA-Z-_]*)?$"
+                    },
+                    "maxVerIncluding": {
+                        "description": "Maximum version, including",
+                        "type": "string",
+                        "pattern": "^[0-9]+(\\.[0-9]+)*([a-zA-Z-_][0-9a-zA-Z-_]*)?$"
+                    },
+                    "minVerExcluding": {
+                        "description": "Minimum version, excluding",
+                        "type": "string",
+                        "pattern": "^[0-9]+(\\.[0-9]+)*([a-zA-Z-_][0-9a-zA-Z-_]*)?$"
+                    },
+                    "maxVerExcluding": {
+                        "description": "Maximum version, excluding",
+                        "type": "string",
+                        "pattern": "^[0-9]+(\\.[0-9]+)*([a-zA-Z-_][0-9a-zA-Z-_]*)?$"
+                    }
+                }
+            },
+            "default": []
+        }
+    },
+    "required": ["id", "status"]
+}

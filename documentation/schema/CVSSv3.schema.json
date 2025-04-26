@@ -1,0 +1,71 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv3.schema.json",
+    "title": "CVSSv3",
+    "description": "CVSS v3 metrics",
+    "readOnly": true,
+    "type": "object",
+    "properties": {
+        "score": {
+            "description": "CVE numeric scores",
+            "type": "object",
+            "properties": {
+                "exploitability": {
+                    "type": "int",
+                    "Minimum": 0,
+                    "Maximum": 10
+                },
+                "impact": {
+                    "type": "int",
+                    "Minimum": 0,
+                    "Maximum": 10
+                },
+                "base": {
+                    "type": "int",
+                    "Minimum": 0,
+                    "Maximum": 10
+                }
+            }
+        },
+        "impact": {
+            "description": "Measures the impact to the systems CIA due to a successfully exploited vulnerability",
+            "type": "object",
+            "properties": {
+                "C": {
+                    "enum": ["NONE", "PARTIAL", "COMPLETE", "?"]
+                },
+                "I": {
+                    "enum": ["NONE", "PARTIAL", "COMPLETE", "?"]
+                },
+                "A": {
+                    "enum": ["NONE", "PARTIAL", "COMPLETE", "?"]
+                }
+            }
+        },
+        "baseSeverity": {
+            "description": "A general severity score for the exploitation",
+            "enum": ["LOW", "MEDIUM", "HIGH", "?"]
+        },
+        "vectorString": {
+            "description": "The abbreviated CVSS version followed by the metrics of accessVector, accessComplexity, privilegesRequired, userInteraction, scope and CIA impact",
+            "type": "string",
+            "default": "?"
+        },
+        "attackVector": {
+            "description": "How the vulnerability is exploited",
+            "enum": ["NETWORK", "ADJACENT NETWORK", "LOCAL", "PHYSICAL", "?"]
+        },
+        "attackComplexity": {
+            "description": "Describes the conditions beyond the attacker's control that must exist in order to exploit the vulnerability",
+            "enum": ["LOW", "HIGH", "?"]
+        },
+        "privilegesRequired": {
+            "description": "Describes the level of privileges an attacker must possess to exploit the vulnerability",
+            "enum": ["NONE", "LOW", "HIGH", "?"]
+        },
+        "userInteraction": {
+            "description": "Describes the requirement for a human user, other than the attacker, to participate in the successful compromise of the vulnerable system",
+            "enum": ["NONE", "REQUIRED", "?"]
+        }
+    }
+}

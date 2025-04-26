@@ -1,0 +1,72 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv2.schema.json",
+    "title": "CVSSv2",
+    "description": "CVSS v2 metrics",
+    "readOnly": true,
+    "type": "object",
+    "properties": {
+        "score": {
+            "description": "CVE numeric scores",
+            "type": "object",
+            "properties": {
+                "exploitability": {
+                    "type": "int",
+                    "Minimum": 0,
+                    "Maximum": 10
+                },
+                "impact": {
+                    "type": "int",
+                    "Minimum": 0,
+                    "Maximum": 10
+                },
+                "base": {
+                    "type": "int",
+                    "Minimum": 0,
+                    "Maximum": 10
+                }
+            }
+        },
+        "impact": {
+            "description": "Measures the impact to the systems CIA due to a successfully exploited vulnerability",
+            "type": "object",
+            "properties": {
+                "C": {
+                    "enum": ["NONE", "PARTIAL", "COMPLETE", "?"]
+                },
+                "I": {
+                    "enum": ["NONE", "PARTIAL", "COMPLETE", "?"]
+                },
+                "A": {
+                    "enum": ["NONE", "PARTIAL", "COMPLETE", "?"]
+                }
+            }
+        },
+        "vectorString": {
+            "description": "The abbreviated metrics of accessVector, accessComplexity, authentication and CIA impact",
+            "type": "string",
+            "default": "?"
+        },
+        "accessVector": {
+            "description": "How the vulnerability is exploited",
+            "enum": ["NETWORK", "ADJACENT NETWORK", "LOCAL", "?"]
+        },
+        "accessComplexity": {
+            "description": "Complexity of the attack required to exploit the vulnerability",
+            "enum": ["LOW", "MEDIUM", "HIGH", "?"]
+        },
+        "authentication": {
+            "description": "Number of times an attacker must authenticate to a target in order to exploit a vulnerability",
+            "enum": ["MULTIPLE", "SINGLE", "NONE", "?"]
+        },
+        "baseSeverity": {
+            "description": "A general severity score for the exploitation",
+            "enum": ["LOW", "MEDIUM", "HIGH", "?"]
+        },
+        "userInteractionRequired": {
+            "description": "Declares if user interaction is required",
+            "type": "bool",
+            "default": "false"
+        }
+    }
+}

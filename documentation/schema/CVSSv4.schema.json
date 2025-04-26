@@ -1,0 +1,112 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv4.schema.json",
+    "title": "CVSSv4",
+    "description": "CVSS v4 metrics",
+    "readOnly": true,
+    "type": "object",
+    "properties": {
+        "vectorString": {
+            "description": "The abbreviated CVSS version followed by most of the metrics",
+            "type": "string",
+            "default": "?"
+        },
+        "baseScore": {
+            "description": "A general numeric score for the exploitation",
+            "type": "int",
+            "Minimum": 0,
+            "Maximum": 10
+        },
+        "baseSeverity": {
+            "description": "A general severity score for the exploitation",
+            "enum": ["LOW", "MEDIUM", "HIGH", "?"]
+        },
+        "attackVector": {
+            "description": "How the vulnerability is exploited",
+            "enum": ["NETWORK", "ADJACENT NETWORK", "LOCAL", "PHYSICAL", "?"]
+        },
+        "attackComplexity": {
+            "description": "Describes the measurable actions that must be taken by the attacker to actively evade or circumvent existing built-in security-enhancing conditions in order to exploit the vulnerability",
+            "enum": ["LOW", "HIGH", "?"]
+        },
+        "attackRequirements": {
+            "description": "Declares the prerequisite deployment and execution conditions or variables of the vulnerable system that enable the attack",
+            "enum": ["NONE", "PRESENT"]
+        },
+        "privilegesRequired": {
+            "description": "Describes the level of privileges an attacker must possess to exploit the vulnerability",
+            "enum": ["NONE", "LOW", "HIGH", "?"]
+        },
+        "userInteraction": {
+            "description": "Describes the requirement for a human user, other than the attacker, to participate in the successful compromise of the vulnerable system",
+            "enum": ["NONE", "PASSIVE", "ACTIVE", "?"]
+        },
+        "impact": {
+            "description": "Measures the impact to the systems CIA due to a successfully exploited vulnerability",
+            "type": "object",
+            "properties":{
+                "vuln": {
+                    "description": "The impact on the vulnerable system",
+                    "type": "object",
+                    "properties": {
+                        "C": {
+                            "enum": ["NONE", "LOW", "HIGH", "?"]
+                        },
+                        "I": {
+                            "enum": ["NONE", "LOW", "HIGH", "?"]
+                        },
+                        "A": {
+                            "enum": ["NONE", "LOW", "HIGH", "?"]
+                        }
+                    }
+                },
+                "sub": {
+                    "description": "The impact on any subsequent system",
+                    "type": "object",
+                    "properties": {
+                        "C": {
+                            "enum": ["NONE", "LOW", "HIGH", "?"]
+                        },
+                        "I": {
+                            "enum": ["NONE", "LOW", "HIGH", "?"]
+                        },
+                        "A": {
+                            "enum": ["NONE", "LOW", "HIGH", "?"]
+                        }
+                    }
+                },
+                "mod": {
+                    "description": "Environment specific custom impact",
+                    "type": "object",
+                    "properties": {
+                        "C": {
+                            "enum": ["NONE", "LOW", "HIGH", "?"]
+                        },
+                        "I": {
+                            "enum": ["NONE", "LOW", "HIGH", "?"]
+                        },
+                        "A": {
+                            "enum": ["NONE", "LOW", "HIGH", "?"]
+                        }
+                    }
+                }
+            }
+        },
+        "automatable": {
+            "description": "Declares if the attacker can automate exploitation events across multiple targets",
+            "enum": ["NOT-DEFINED", "NO", "YES","?"]
+        },
+        "valueDensity": {
+            "description": "Describes the resources that the attacker will gain control over with a single exploitation event",
+            "enum": ["NOT DEFINED", "DIFFUSE", "CONCENTRATED", "?"]
+        },
+        "responseEffort": {
+            "description": "Provide supplemental information on how difficult it to provide an initial response to the impact of vulnerabilities for deployed products and services",
+            "enum": ["NOT DEFINED", "LOW", "MODERATE", "HIGH", "?"]
+        },
+        "exploitMaturity": {
+            "description": "Describes the likelihood of the vulnerability being attacked based on the current state of exploit techniques, scripts availability, or active 'live real world' exploitation",
+            "enum": ["NOT DEFINED", "UNREPORTED", "PROOF-OF-CONCEPT", "ATTACKED", "?"]
+        }
+    }
+}
