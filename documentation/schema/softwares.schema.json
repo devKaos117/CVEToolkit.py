@@ -1,6 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/softwares.schema.json",
+    "$id": "https://github.com/devKaos117/CVEToolkit.py/blob/main/documentation/schema/softwares.schema.json",
     "title": "Softwares dictionary",
     "description": "The minimum structure fields for the softwares dictionary entry, any other field is allowed and remains unchanged",
     "type": "object",
@@ -22,7 +22,7 @@
             "description": "Found CVE's added by the CVEEnumerator",
             "type": "object",
             "readOnly": true,
-            "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVE.schema.json"
+            "$ref": "https://github.com/devKaos117/CVEToolkit.py/blob/main/documentation/schema/CVE.schema.json"
         }
     },
     "required": ["id", "name", "version"]

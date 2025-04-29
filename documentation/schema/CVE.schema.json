@@ -1,6 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVE.schema.json",
+    "$id": "https://github.com/devKaos117/CVEToolkit.py/blob/main/documentation/schema/CVE.schema.json",
     "title": "CVE obj",
     "description": "A object generated from a CVE entry",
     "readOnly": true,
@@ -38,28 +38,28 @@
                     "description": "CVSS v2 metrics",
                     "type": "array",
                     "items": {
-                        "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv2.schema.json"
+                        "$ref": "https://github.com/devKaos117/CVEToolkit.py/blob/main/documentation/schema/CVSSv2.schema.json"
                     }
                 }, 
                 "3": {
                     "description": "CVSS v3 metrics",
                     "type": "array",
                     "items": {
-                        "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv3.schema.json"
+                        "$ref": "https://github.com/devKaos117/CVEToolkit.py/blob/main/documentation/schema/CVSSv3.schema.json"
                     }
                 }, 
                 "3.1": {
                     "description": "CVSS v3.1 metrics",
                     "type": "array",
                     "items": {
-                        "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv3.schema.json"
+                        "$ref": "https://github.com/devKaos117/CVEToolkit.py/blob/main/documentation/schema/CVSSv3.schema.json"
                     }
                 }, 
                 "4": {
                     "description": "CVSS v4 metrics",
                     "type": "array",
                     "items": {
-                        "$ref": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv4.schema.json"
+                        "$ref": "https://github.com/devKaos117/CVEToolkit.py/blob/main/documentation/schema/CVSSv4.schema.json"
                     }
                 }
             },

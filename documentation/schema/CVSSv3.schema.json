@@ -1,6 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/CVSSv3.schema.json",
+    "$id": "https://github.com/devKaos117/CVEToolkit.py/blob/main/documentation/schema/CVSSv3.schema.json",
     "title": "CVSSv3",
     "description": "CVSS v3 metrics",
     "readOnly": true,
