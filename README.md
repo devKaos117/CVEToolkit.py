@@ -76,8 +76,8 @@ if __name__ == "__main__":
 &emsp;&emsp;<a href="https://www.python.org/" target="_blank">![Static Badge](https://img.shields.io/badge/v3.13.2-%23FFFFFF?style=flat&logo=python&logoColor=%233776AB&logoSize=auto&label=Python&labelColor=%23000000&color=%23333333&link=https%3A%2F%2Fwww%2Epython%2Eorg%2F)</a>
 
 #### Dependencies <a name = "technical-description-dependencies"></a>
-&emsp;&emsp;<a href="https://github.com/devKaos117/Kronos.py/">![Static Badge](https://img.shields.io/badge/1.0.0-%23FFFFFF?style=flat&label=Kronos.py&labelColor=%23000000&color=%23333333&link=https%3A%2F%2Fgithub%2Ecom%2FdevKaos117%2FKronos%2Epy%2F)</a>
+&emsp;&emsp;<a href="https://github.com/devKaos117/Kronos.py/">![Static Badge](https://img.shields.io/badge/1.0.2-%23FFFFFF?style=flat&label=Kronos.py&labelColor=%23000000&color=%23333333&link=https%3A%2F%2Fgithub%2Ecom%2FdevKaos117%2FKronos%2Epy%2F)</a>
 <br>
 &emsp;&emsp;<a href="https://requests.readthedocs.io/">![Static Badge](https://img.shields.io/badge/2.32.3-%23FFFFFF?style=flat&label=requests&labelColor=%23000000&color=%23333333&link=https%3A%2F%2Frequests%2Ereadthedocs%2Eio%2F)</a>
 <br>
-&emsp;&emsp;<a href="https://packaging.pypa.io/en/stable/">![Static Badge](https://img.shields.io/badge/24.2-%23FFFFFF?style=flat&label=packaging&labelColor=%23000000&color=%23333333&link=https%3A%2F%2Fpackaging%2Epypa%2Eio%2Fen%2Fstable%2F)</a>
+&emsp;&emsp;<a href="https://packaging.pypa.io/en/stable/">![Static Badge](https://img.shields.io/badge/25.0-%23FFFFFF?style=flat&label=packaging&labelColor=%23000000&color=%23333333&link=https%3A%2F%2Fpackaging%2Epypa%2Eio%2Fen%2Fstable%2F)</a>

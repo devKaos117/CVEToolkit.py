@@ -27,7 +27,7 @@ classifiers = [
 ]
 dependencies = [
     "requests>=2.20.0",
-    "packaging>=25.0.0",
+    "packaging>=25.0",
     "kronos>=1.0.2"
 ]
 
