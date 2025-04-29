@@ -1,130 +1,19 @@
-import re, requests, time, Kronos, config_utils
+import re, kronos
 from packaging import version
 from typing import Dict, List, Any, Optional
 
-
-class CVEFetcher:
-    """
-    Class to fetch CVE's from NIST API
-    """
-    
-    def __init__(self, logger: Kronos.Logger, rate_limiter: Kronos.RateLimiter, config: Optional[Dict[str, Any]] = None):
-        self._logger = logger
-        self._rate_limiter = rate_limiter
-        
-        # Import configuration with default values
-        default_config = config_utils.set_default_config()["cve_fetching"]
-        self.config = config_utils.import_config(config, default_config)
-        
-        self._logger.info("CVEFetcher initialized")
-
-    def fetch(self, session: requests.Session, keywords: str, version: str) -> List[Dict[str, Any]]:
-        """Fetch CVEs for a software by keywords and version."""
-        results = []
-        start_index = 0
-        total_results = 1
-        
-        # Check if version is valid
-        valid_version = CVE.is_valid_version(version)
-        
-        while start_index < total_results:
-            # Respect rate limit before making request
-            self._rate_limiter.acquire()
-            
-            # Prepare request parameters
-            params = {
-                "keywordSearch": keywords,
-                "noRejected": None
-            }
-            
-            # Add start index for pagination if needed
-            if start_index > 0:
-                params['startIndex'] = start_index
-                
-            # Make request with retry logic
-            response = None
-            retries = 0
-            
-            while retries < self.config["max_retries"]:
-                try:
-                    response = session.get(self.config["NIST_base_url"], params=params)
-                    
-                    # Handle different status codes
-                    if response.status_code == 200:
-                        break
-                    elif response.status_code in (403, 429):
-                        self._logger.warning(f"Rate limit exceeded (status {response.status_code}). Waiting 30 seconds...")
-                        time.sleep(30)  # Wait longer for rate limit issues
-                    elif response.status_code >= 500:
-                        self._logger.warning(f"Server error (status {response.status_code}). Waiting 1 second...")
-                        time.sleep(1)  # Wait for server issues
-                    else:
-                        self._logger.error(f"Unexpected status code: {response.status_code}")
-                        break
-                except requests.RequestException as e:
-                    self._logger.exception(f"Network error fetching CVEs: {str(e)}")       
-                except Exception as e:
-                    self._logger.exception(f"Error fetching CVEs: {str(e)}")
-                    self._logger.log_http_response(response)
-                    time.sleep(1)
-                    
-                retries += 1
-                
-            # If all retries failed, continue to next batch
-            if response is None or response.status_code != 200:
-                self._logger.error(f"Failed to fetch CVEs after {self.config['max_retries']} retries")
-                break
-
-            self._logger.log_http_response(message=f"Fetched CVEs, paginating on {start_index} / {total_results}", response=response)
-                
-            # Process successful response
-            try:
-                data = response.json()
-                vulnerabilities = data.get("vulnerabilities", [])
-                
-                # Update pagination data
-                total_results = data.get("totalResults", 0)
-                results_per_page = data.get("resultsPerPage", 2000)
-                
-                # Process each vulnerability
-                for vuln in vulnerabilities:
-                    if len(vuln.keys()) > 1:
-                        self._logger.warning(f"Unsupported vulnerability returned")
-
-                    try:
-                        cve_data = vuln.get("cve", {})
-                        cve = CVE(self._logger, cve_data, self.config)
-                        
-                        # Check if the CVE status is accepted
-                        if not cve.valid_status(cve_data.get("vulnStatus", "NOT_FOUND")):
-                            continue
-
-                        # Check if this CVE applies to the version
-                        if not valid_version or cve.version_included(version):
-                            results.append(cve.get_data())
-                    except Exception as e:
-                        self._logger.exception(f"Error processing CVE: {str(e)}")
-                
-                # Update start index for next page
-                start_index += results_per_page
-            except Exception as e:
-                self._logger.exception(f"Error parsing response: {str(e)}")
-                break
-        
-        self._logger.info(f"{len(results)} vulnerabilities accepted from {total_results} received")
-
-        return results
+from . import configuration
 
 
 class CVE:
     """
-    Parser class for CVE data from NIST API with integration 
-    to Kronos.Logger() from https://github.com/devKaos117/Kronos.py.
-    Transforms the API response into a structured format with support for
+    Parser class for CVE data from NIST API,
+    transforming the API response into a
+    structured format with support for
     CVSS2, CVSS3, CVSS3.1, and CVSS4 schemas.
     """
 
-    def __init__(self, logger: Kronos.Logger, cve: Dict[str, Any], config: Optional[Dict[str, Any]] = None):
+    def __init__(self, logger: kronos.Logger, cve: Dict[str, Any], config: Optional[Dict[str, Any]] = None):
         """
         Initialize a CVE object from API response.
         
@@ -140,17 +29,17 @@ class CVE:
             "accepted_cve_status": ["Analyzed", "Published", "Modified"],
             "accepted_languages": ["en", "es"]
         }
-        self.config = config_utils.import_config(config, default_config)
+        self.config = configuration.import_config(config, default_config)
         
         self._data = {
             "id": cve.get("id", "CVE-0000-0000"),
             "status": cve.get("vulnStatus", "?"),
             "descriptions": self._get_descriptions(cve.get("descriptions", {})),
             "cvss": {
-                "2": self._get_cvss2(cve.get("metrics", {})),
-                "3": self._get_cvss3(cve.get("metrics", {})),
-                "3.1": self._get_cvss31(cve.get("metrics", {})),
-                "4": self._get_cvss4(cve.get("metrics", {}))
+                "2": self._get_cvss2(cve.get("metrics", [])),
+                "3": self._get_cvss3(cve.get("metrics", [])),
+                "3.1": self._get_cvss31(cve.get("metrics", [])),
+                "4": self._get_cvss4(cve.get("metrics", []))
             },
             "cwe": self._get_cwe(cve.get("weaknesses", [])),
             "cpe": self._get_cpe(cve.get("configurations", []))

@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cve_toolkit"
+version = "1.0.1"
+description = "A python package to deal with NIST CVE API"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+authors = [
+    {name = "Gustavo Aragão", email = "gustavo.s.aragao.2003@gmail.com"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet",
+]
+dependencies = [
+    "requests>=2.20.0",
+    "packaging>=25.0.0",
+    "kronos>=1.0.2"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/devKaos117/Kronos.py"
+"Bug Tracker" = "https://github.com/devKaos117/Kronos.py/issues"

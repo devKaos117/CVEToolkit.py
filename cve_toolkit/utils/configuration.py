@@ -1,5 +1,6 @@
 from typing import Dict, Any, Optional, Mapping, Union, TypeVar
 
+
 T = TypeVar('T')
 
 def import_config(input_config: Optional[Dict[str, Any]] = None, default_config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:

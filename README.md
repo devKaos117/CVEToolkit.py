@@ -14,20 +14,20 @@
 ## About <a name = "about"></a>
 
 ### Summary <a name = "about-summary"></a>
-Python tool for fetching and analyzing CVE (Common Vulnerabilities and Exposures) information from the NIST API. Implements multithreaded and multiprocessing architecture for efficiently processing multiple software entries. Integrated to <a href="https://github.com/devKaos117/Kronos.py" target="_blank">Kronos.py</a>.
+This is a Python package for fetching and analyzing CVE (Common Vulnerabilities and Exposures) information from the NIST API. Implements multithreaded and multiprocessing architecture for efficiently processing multiple software entries. Integrated to <a href="https://github.com/devKaos117/Kronos.py" target="_blank">Kronos.py</a>.
 
 ### Usage <a name = "about-usage"></a>
 ```python
 
-import Kronos, CVEEnumerator
+import kronos, cve_toolkit
 
 if __name__ == "__main__":
-    logger = Kronos.Logger(level=10, log_directory="log")
+    logger = kronos.Logger(level=10, log_directory="log")
 
     config = {
         "multitasking": {
-            "worker_count": 3,
-            "rate_limit": 5,
+            "worker_count": 8,
+            "rate_limit": 50,
             "rate_limit_period": 30
         },
         "cve_fetching": {
@@ -38,7 +38,7 @@ if __name__ == "__main__":
         }
     }
 
-    enumerador = CVEEnumerator.CVEEnumerator(logger, 'apiKey', config)
+    enumerador = cve_toolkit.CVEEnumerator(logger, 'apiKey', config)
 
     # https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/softwares.schema.json
     data = {

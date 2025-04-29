@@ -1,7 +1,10 @@
-import requests, multiprocessing, Kronos, NIST, config_utils
+import kronos, requests, multiprocessing
 from queue import Queue, Empty
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, Optional
+
+from .utils import configuration
+from .utils.cve_fetcher import CVEFetcher
 
 
 class CVEEnumerator:
@@ -9,7 +12,7 @@ class CVEEnumerator:
     Class to enumerate CVEs, either in multithreading or multiprocessing.
     """
     
-    def __init__(self, logger: Kronos.Logger, api_key: str, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, logger: kronos.Logger, api_key: str, config: Optional[Dict[str, Any]] = None):
         """
         Initialize the CVE enumerator.
         
@@ -22,8 +25,8 @@ class CVEEnumerator:
         self._logger = logger
         
         # Import configuration with defaults
-        default_config = config_utils.set_default_config()
-        self._config = config_utils.import_config(config, default_config)
+        default_config = configuration.set_default_config()
+        self._config = configuration.import_config(config, default_config)
         
         # Extract multitasking config for convenience
         self.config = self._config['multitasking']
@@ -43,7 +46,7 @@ class CVEEnumerator:
         self._logger.info("Session initialized")
         return session
     
-    def _worker_function(self, work_queue: Queue, results_dict: Dict[str, Any], processed_set: Dict[str, bool], session: requests.Session, fetcher: NIST.CVEFetcher):
+    def _worker_function(self, work_queue: Queue, results_dict: Dict[str, Any], processed_set: Dict[str, bool], session: requests.Session, fetcher: CVEFetcher):
         """
         Worker function for multiprocessing.
         
@@ -116,13 +119,8 @@ class CVEEnumerator:
         processed_set = manager.dict()
 
         # Create multiprocessing rate limiter and initialize fetcher
-        rate_limiter = Kronos.RateLimiter(
-            self._logger, 
-            self.config['rate_limit'], 
-            self.config['rate_limit_period'], 
-            True
-        )
-        fetcher = NIST.CVEFetcher(self._logger, rate_limiter, self._config["cve_fetching"])
+        rate_limiter = kronos.RateLimiter(limit=self.config['rate_limit'], time_period=self.config['rate_limit_period'], multiprocessing_mode=True, logger=self._logger)
+        fetcher = CVEFetcher(self._logger, rate_limiter, self._config["cve_fetching"])
 
         # Fill the queue with work items
         for sw_id, software in softwares.items():
@@ -150,7 +148,7 @@ class CVEEnumerator:
         self._logger.info(f"CVE enumeration completed for {len(results)} software entries")
         return results
 
-    def _process_software(self, sw_id: str, software: Dict[str, Any], session: requests.Session, fetcher: NIST.CVEFetcher) -> tuple:
+    def _process_software(self, sw_id: str, software: Dict[str, Any], session: requests.Session, fetcher: CVEFetcher) -> tuple:
         """
         Process a single software entry in the multithreading.
 
@@ -195,13 +193,8 @@ class CVEEnumerator:
         results = {}
 
         # Creating multithreading rate limiter and initialize fetcher
-        rate_limiter = Kronos.RateLimiter(
-            self._logger, 
-            self.config['rate_limit'], 
-            self.config['rate_limit_period'], 
-            False
-        )
-        fetcher = NIST.CVEFetcher(self._logger, rate_limiter, self._config["cve_fetching"])
+        rate_limiter = kronos.RateLimiter(limit=self.config['rate_limit'], time_period=self.config['rate_limit_period'], multiprocessing_mode=False, logger=self._logger)
+        fetcher = CVEFetcher(self._logger, rate_limiter, self._config["cve_fetching"])
 
         # Create session
         session = self._create_session()
@@ -210,7 +203,7 @@ class CVEEnumerator:
         with ThreadPoolExecutor(max_workers=self.config['worker_count']) as executor:
             # Submit all software entries for processing
             future_to_id = {
-                executor.submit(self._process_software, sw_id, software, session, fetcher): sw_id 
+                executor.submit(self._process_software, sw_id, software, session, fetcher): sw_id
                 for sw_id, software in softwares.items()
             }
             
