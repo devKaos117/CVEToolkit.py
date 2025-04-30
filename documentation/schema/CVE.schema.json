@@ -106,6 +106,10 @@
                 }
             },
             "default": []
+        },
+        "versionChecked": {
+            "decription": "NOT PRESENT IN THE CVE CLASS, INSERTED BY THE CVEFETCHER. Declares if the CVE was checked against the software provided version",
+            "type": "booleal"
         }
     },
     "required": ["id", "status"]

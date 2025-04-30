@@ -103,9 +103,16 @@ class CVEFetcher:
                         if not cve.valid_status(cve_data.get("vulnStatus", "NOT_FOUND")):
                             continue
 
+                        result = cve.get_data()
+
+                        # Check if this software version is invalid
+                        if not valid_version:
+                            result["versionChecked"] = False
+                            results.append(result)
                         # Check if this CVE applies to the version
-                        if not valid_version or cve.version_included(version):
-                            results.append(cve.get_data())
+                        if cve.version_included(version):
+                            result["versionChecked"] = True
+                            results.append(result)
                     except Exception as e:
                         self._logger.exception(f"Error processing CVE: {str(e)}")
                 

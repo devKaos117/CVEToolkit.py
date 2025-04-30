@@ -17,7 +17,7 @@
         },
         "baseScore": {
             "description": "A general numeric score for the exploitation",
-            "type": "int",
+            "type": "integer",
             "Minimum": 0,
             "Maximum": 10
         },

@@ -15,17 +15,17 @@
             "type": "object",
             "properties": {
                 "exploitability": {
-                    "type": "int",
+                    "type": "integer",
                     "Minimum": 0,
                     "Maximum": 10
                 },
                 "impact": {
-                    "type": "int",
+                    "type": "integer",
                     "Minimum": 0,
                     "Maximum": 10
                 },
                 "base": {
-                    "type": "int",
+                    "type": "integer",
                     "Minimum": 0,
                     "Maximum": 10
                 }
