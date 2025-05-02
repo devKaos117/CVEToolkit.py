@@ -10,5 +10,5 @@ Built-in Kronos.py usage
 
 __version__ = "1.0.2"
 
-from .CVEEnumerator import CVEEnumerator
+from .cve_enumerator import CVEEnumerator
 __all__ = ["CVEEnumerator"]

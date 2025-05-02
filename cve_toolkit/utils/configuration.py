@@ -50,7 +50,7 @@ def get_nested_value(config: Dict[str, Any], path: str, default: T = None) -> Un
     
     Args:
         config: Configuration dictionary
-        path: Dot-separated path to the value (e.g. 'multitasking.worker_count')
+        path: Dot-separated path to the value
         default: Default value to return if the path doesn't exist
         
     Returns:

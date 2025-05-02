@@ -32,5 +32,5 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/devKaos117/Kronos.py"
-"Bug Tracker" = "https://github.com/devKaos117/Kronos.py/issues"
+"Homepage" = "https://github.com/devKaos117/CVEToolkit.py"
+"Bug Tracker" = "https://github.com/devKaos117/CVEToolkit.py/issues"
