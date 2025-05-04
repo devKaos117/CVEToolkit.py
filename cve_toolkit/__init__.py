@@ -8,7 +8,7 @@ through multiprocessing or multithreading methods.
 Built-in Kronos.py usage
 """
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 from .cve_enumerator import CVEEnumerator
 __all__ = ["CVEEnumerator"]

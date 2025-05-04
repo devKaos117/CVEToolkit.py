@@ -1,7 +1,9 @@
-import kronos, multiprocessing
+import multiprocessing
 from queue import Queue, Empty
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, Optional
+
+import kronos
 
 from .utils import configuration
 from .utils.http import HTTPy

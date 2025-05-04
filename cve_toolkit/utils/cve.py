@@ -1,5 +1,6 @@
-import kronos
 from typing import Dict, List, Any, Optional
+
+import kronos
 
 from . import configuration
 from .version import VersionCheck
@@ -319,28 +320,23 @@ class CVE:
                 try:
                     if cpe.get("minVerIncluding") and not VersionCheck.is_covered(v_in=ver, min=cpe['minVerIncluding'], including=True):
                         return False
-                    
-                    if cpe.get("maxVerIncluding") and not VersionCheck.is_covered(v_in=ver, max=cpe['maxVerIncluding'], including=True):
+                    elif cpe.get("maxVerIncluding") and not VersionCheck.is_covered(v_in=ver, max=cpe['maxVerIncluding'], including=True):
                         return False
-                    
-                    if cpe.get("minVerExcluding") and not VersionCheck.is_covered(v_in=ver, min=cpe['minVerExcluding'], including=False):
+                    elif cpe.get("minVerExcluding") and not VersionCheck.is_covered(v_in=ver, min=cpe['minVerExcluding'], including=False):
                         return False
-                    
-                    if cpe.get("maxVerExcluding") and not VersionCheck.is_covered(v_in=ver, max=cpe['maxVerExcluding'], including=False):
+                    elif cpe.get("maxVerExcluding") and not VersionCheck.is_covered(v_in=ver, max=cpe['maxVerExcluding'], including=False):
                         return False
-                    
-                    return True
+                    else:
+                        return True
                 except Exception as e:
                     self._logger.exception(f"Version comparison error for {ver} with {cpe}: {e}")
                     # If any parsing fails, continue to next CPE
                     continue
-                    
+            
+            return False
         except Exception as e:
             self._logger.exception(f"Error checking version coverage for {ver}: {e}")
             return False
-        
-        self._logger.error(f"unexpected result case for {ver} with CVE {self._data["id"]}")
-        return False
     
     def valid_status(self, status: str) -> bool:
         """

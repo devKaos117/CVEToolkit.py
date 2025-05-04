@@ -1,5 +1,6 @@
-import requests, time, kronos
 from typing import Dict, List, Any, Optional
+
+import kronos
 
 from .cve import CVE
 from .http import HTTPy
@@ -36,9 +37,6 @@ class CVEFetcher:
         valid_version = VersionCheck.is_valid(version)
         
         while start_index < total_results:
-            # Respect rate limit before making request
-            self._rate_limiter.acquire()
-            
             # Prepare request parameters
             params = {
                 "keywordSearch": keywords,
@@ -50,7 +48,7 @@ class CVEFetcher:
                 params['startIndex'] = start_index
                 
             # Make request
-            self._logger.debug(message=f"Requesting CVEs, paginating on {start_index} / {total_results}")
+            self._logger.debug(f"Requesting CVEs, paginating on {start_index} / {total_results}")
             response = client.get(self.config["NIST_base_url"], params=params)
                 
             # If all retries failed, continue to next batch

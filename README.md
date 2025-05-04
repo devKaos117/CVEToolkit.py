@@ -49,7 +49,7 @@ if __name__ == "__main__":
         }
     }
 
-    enumerador = cve_toolkit.CVEEnumerator(logger, 'apiKey', config)
+    enumerator = cve_toolkit.CVEEnumerator(logger, 'apiKey', config)
 
     # https://github.com/devKaos117/FetchCVE.py/blob/main/documentation/schema/softwares.schema.json
     data = {
@@ -58,7 +58,7 @@ if __name__ == "__main__":
         "SW003": {"id": "SW003", "name": "VS Code", "version": "1.78.2"}
     }
     
-    result = enumerador.multithreading(data)
+    result = enumerator.multithreading(data)
 
     for sw_id, data in result.items():
         print(f"Software: {data['name']} v{data['version']}")
@@ -66,8 +66,6 @@ if __name__ == "__main__":
         print(f"Found {len(cves)} vulnerabilities")
         for cve in cves:
             print(f"  - {cve['id']}: {cve['descriptions'].get('en', 'No description')}")
-
-
 ```
 
 ---
