@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="cve_toolkit",
-    version="1.0.2",
+    version="1.0.3",
     author="Gustavo Aragão",
     author_email="gustavo.s.aragao.2003@gmail.com",
     description="A python package to deal with NIST CVE API",

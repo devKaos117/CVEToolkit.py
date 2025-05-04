@@ -1,9 +1,10 @@
-import kronos, requests, multiprocessing
+import kronos, multiprocessing
 from queue import Queue, Empty
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, Optional
 
 from .utils import configuration
+from .utils.http import HTTPy
 from .utils.cve_fetcher import CVEFetcher
 
 
@@ -11,6 +12,31 @@ class CVEEnumerator:
     """
     Class to enumerate CVEs, either in multithreading or multiprocessing.
     """
+
+    _DEFAULT_CONFIG = {
+        "multitasking": {
+            "worker_count": 8,
+            "rate_limit": 50,
+            "rate_limit_period": 30
+        },
+        "cve_fetching": {
+            "NIST_base_url": "https://services.nvd.nist.gov/rest/json/cves/2.0",
+            "accepted_cve_status": ["Analyzed", "Published", "Modified"],
+            "accepted_languages": ["en", "es"]
+        },
+        "httpy": {
+            "randomize-agent": True,
+            "max-retries": 5,
+            "retry_status_codes": [403, 429, 500, 502, 503, 504],
+            "success_status_codes": [200],
+            "timeout": 15,
+            "headers": {
+                "Accept": "text/html,application/xhtml+xml,application/xml,application/json",
+                "Accept-Language": "en-US,en,pt-BR,pt",
+                "Cache-Control": "no-cache"
+            }
+        }
+    }
     
     def __init__(self, logger: kronos.Logger, api_key: str, config: Optional[Dict[str, Any]] = None):
         """
@@ -25,28 +51,24 @@ class CVEEnumerator:
         self._logger = logger
         
         # Import configuration with defaults
-        default_config = configuration.set_default_config()
-        self._config = configuration.import_config(config, default_config)
+        self._config = configuration.import_config(config, self._DEFAULT_CONFIG)
         
         # Extract multitasking config for convenience
         self.config = self._config['multitasking']
         
-    def _create_session(self) -> requests.Session:
+    def _create_client(self, rate_limiter: kronos.RateLimiter) -> HTTPy:
         """
-        Create and configure a requests session with API key.
+        Create and configure a HTTPy client with API key.
         
         Returns:
-            Configured requests session
+            Configured HTTPy instance
         """
-        session = requests.Session()
-        session.headers.update({
-            "apiKey": self._api_key,
-            "User-Agent": "CVE-Enumeration-Tool/1.0"
-        })
-        self._logger.info("Session initialized")
-        return session
+        config = self._config["httpy"]
+        config["headers"]["apiKey"] = self._api_key
+
+        return HTTPy(self._logger, config, rate_limiter)
     
-    def _worker_function(self, work_queue: Queue, results_dict: Dict[str, Any], processed_set: Dict[str, bool], session: requests.Session, fetcher: CVEFetcher):
+    def _worker_function(self, work_queue: Queue, results_dict: Dict[str, Any], processed_set: Dict[str, bool], client: HTTPy, fetcher: CVEFetcher):
         """
         Worker function for multiprocessing.
         
@@ -54,7 +76,7 @@ class CVEEnumerator:
             work_queue: Queue containing software data to process
             results_dict: Shared dictionary to store results
             processed_set: Shared dictionary to ensure no duplicates are processed
-            session: Configured session
+            client: Configured HTTPy client
             fetcher: CVE fetcher
         """
         
@@ -74,7 +96,7 @@ class CVEEnumerator:
                     self._logger.info(f"Processing software {software['id']}")
                     
                     # Fetch CVEs for this software
-                    cves = fetcher.fetch(session=session, keywords=software['name'], version=software['version'])
+                    cves = fetcher.fetch(client=client, keywords=software['name'], version=software['version'])
                     
                     # Store results
                     software_copy = software.copy()
@@ -118,21 +140,19 @@ class CVEEnumerator:
         # Create a tracking set to keep track of processed software
         processed_set = manager.dict()
 
-        # Create multiprocessing rate limiter and initialize fetcher
+        # Create multiprocessing rate limiter, create HTTPy client and initialize fetcher
         rate_limiter = kronos.RateLimiter(limit=self.config['rate_limit'], time_period=self.config['rate_limit_period'], multiprocessing_mode=True, logger=self._logger)
-        fetcher = CVEFetcher(self._logger, rate_limiter, self._config["cve_fetching"])
+        client = self._create_client(rate_limiter)
+        fetcher = CVEFetcher(self._logger, self._config["cve_fetching"])
 
         # Fill the queue with work items
         for sw_id, software in softwares.items():
             work_queue.put((sw_id, software))
 
-        # Create session
-        session = self._create_session()
-
         # Create and start workers
         processes = []
         for _ in range(min(self.config['worker_count'], len(softwares))):
-            p = multiprocessing.Process(target=self._worker_function, args=(work_queue, results_dict, processed_set, session, fetcher))
+            p = multiprocessing.Process(target=self._worker_function, args=(work_queue, results_dict, processed_set, client, fetcher))
             processes.append(p)
             p.start()
             
@@ -148,12 +168,12 @@ class CVEEnumerator:
         self._logger.info(f"CVE enumeration completed for {len(results)} software entries")
         return results
 
-    def _process_software(self, sw_id: str, software: Dict[str, Any], session: requests.Session, fetcher: CVEFetcher) -> tuple:
+    def _process_software(self, sw_id: str, software: Dict[str, Any], client: HTTPy, fetcher: CVEFetcher) -> tuple:
         """
         Process a single software entry in the multithreading.
 
         Args:
-            session: Configured session
+            client: Configured HTTPy client
             sw_id: Software id
             software: Dictionary of software data
         
@@ -164,7 +184,7 @@ class CVEEnumerator:
             self._logger.debug(f"Processing software {software['id']}")
             
             # Fetch CVEs for this software
-            cves = fetcher.fetch(session=session, keywords=software['name'], version=software['version'])
+            cves = fetcher.fetch(client=client, keywords=software['name'], version=software['version'])
             
             # Create result
             software_copy = software.copy()
@@ -192,18 +212,16 @@ class CVEEnumerator:
         self._logger.info(f"Starting CVE enumeration for {len(softwares)} software entries")
         results = {}
 
-        # Creating multithreading rate limiter and initialize fetcher
+        # Creating multithreading rate limiter, create HTTPy client and initialize fetcher
         rate_limiter = kronos.RateLimiter(limit=self.config['rate_limit'], time_period=self.config['rate_limit_period'], multiprocessing_mode=False, logger=self._logger)
-        fetcher = CVEFetcher(self._logger, rate_limiter, self._config["cve_fetching"])
-
-        # Create session
-        session = self._create_session()
+        client = self._create_client(rate_limiter)
+        fetcher = CVEFetcher(self._logger, self._config["cve_fetching"])
         
         # Use ThreadPoolExecutor for better performance with I/O bound operations
         with ThreadPoolExecutor(max_workers=self.config['worker_count']) as executor:
             # Submit all software entries for processing
             future_to_id = {
-                executor.submit(self._process_software, sw_id, software, session, fetcher): sw_id
+                executor.submit(self._process_software, sw_id, software, client, fetcher): sw_id
                 for sw_id, software in softwares.items()
             }
             
