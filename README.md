@@ -1,4 +1,4 @@
-# CVEToolkit.py ![v1.0.2](https://img.shields.io/badge/version-1.0.2-informational)
+# CVEToolkit.py ![v1.0.3](https://img.shields.io/badge/version-1.0.3-informational)
 <a href="https://github.com/devKaos117/FetchCVE.py/blob/main/LICENSE" target="_blank">![Static Badge](https://img.shields.io/badge/License-%23FFFFFF?style=flat&label=MIT&labelColor=%23000000&color=%23333333&link=https%3A%2F%2Fgithub%2Ecom%2FdevKaos117%2FFetchCVE%2Epy%2Fblob%2Fmain%2FLICENSE)</a>
 ## Index
 
@@ -31,10 +31,21 @@ if __name__ == "__main__":
             "rate_limit_period": 30
         },
         "cve_fetching": {
-            "max_retries": 5,
             "NIST_base_url": "https://services.nvd.nist.gov/rest/json/cves/2.0",
             "accepted_cve_status": ["Analyzed", "Published", "Modified"],
             "accepted_languages": ["en", "es"]
+        },
+        "httpy": {
+            "randomize-agent": True,
+            "max-retries": 5,
+            "retry_status_codes": [403, 429, 500, 502, 503, 504],
+            "success_status_codes": [200],
+            "timeout": 15,
+            "headers": {
+                "Accept": "text/html,application/xhtml+xml,application/xml,application/json",
+                "Accept-Language": "en-US,en,pt-BR,pt",
+                "Cache-Control": "no-cache"
+            }
         }
     }
 
@@ -76,7 +87,7 @@ if __name__ == "__main__":
 &emsp;&emsp;<a href="https://www.python.org/" target="_blank">![Static Badge](https://img.shields.io/badge/v3.13.2-%23FFFFFF?style=flat&logo=python&logoColor=%233776AB&logoSize=auto&label=Python&labelColor=%23000000&color=%23333333&link=https%3A%2F%2Fwww%2Epython%2Eorg%2F)</a>
 
 #### Dependencies <a name = "technical-description-dependencies"></a>
-&emsp;&emsp;<a href="https://github.com/devKaos117/Kronos.py/">![Static Badge](https://img.shields.io/badge/1.0.2-%23FFFFFF?style=flat&label=Kronos.py&labelColor=%23000000&color=%23333333&link=https%3A%2F%2Fgithub%2Ecom%2FdevKaos117%2FKronos%2Epy%2F)</a>
+&emsp;&emsp;<a href="https://github.com/devKaos117/Kronos.py/">![Static Badge](https://img.shields.io/badge/1.0.3-%23FFFFFF?style=flat&label=Kronos.py&labelColor=%23000000&color=%23333333&link=https%3A%2F%2Fgithub%2Ecom%2FdevKaos117%2FKronos%2Epy%2F)</a>
 <br>
 &emsp;&emsp;<a href="https://requests.readthedocs.io/">![Static Badge](https://img.shields.io/badge/2.32.3-%23FFFFFF?style=flat&label=requests&labelColor=%23000000&color=%23333333&link=https%3A%2F%2Frequests%2Ereadthedocs%2Eio%2F)</a>
 <br>
