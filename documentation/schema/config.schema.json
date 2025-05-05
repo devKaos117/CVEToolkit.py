@@ -1,0 +1,59 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/devKaos117/CVEToolkit.py/blob/main/documentation/schema/config.schema.json",
+    "title": "CVEEnumerator config",
+    "description": "A dictionary with the configurations for an CVEEnumerator instance",
+    "type": "object",
+    "properties": {
+        "multitasking": {
+            "description": "Configuration for the multitasking aspects of the script",
+            "type": "object",
+            "properties": {
+                "worker_count": {
+                    "description": "Number of workers produced",
+                    "type": "integer"
+                },
+                "rate_limit": {
+                    "description": "Upper limit for the number of requests per defined time interval",
+                    "type": "integer"
+                },
+                "rate_limit_period": {
+                    "description": "Time interval for the rate limit",
+                    "type": "integer"
+                }
+            }
+        },
+        "cve_fetching": {
+            "description": "Configuration for an CVEFetcher instance",
+            "type": "object",
+            "properties": {
+                "NIST_base_url": {
+                    "description": "NIST CVE API base URL",
+                    "type": "string",
+                    "default": "https://services.nvd.nist.gov/rest/json/cves/2.0"
+                },
+                "accepted_cve_status": {
+                    "description": "CVE status that will be accepted as valid",
+                    "type": "array",
+                    "items": {
+                        "string": "CVE Status"
+                    },
+                    "default": ["Analyzed", "Published", "Modified"]
+                },
+                "accepted_languages": {
+                    "description": "Accepted languages for the description texts",
+                    "type": "array",
+                    "items": {
+                        "string": "Language abbreviation"
+                    },
+                    "default": ["en", "es"]
+                }
+            }
+        },
+        "httpy": {
+            "description": "Configuration for the HTTPy client",
+            "type": "object",
+            "$ref": "https://github.com/devKaos117/Utils.py/blob/main/documentation/schema/http.schema.json"
+        }
+    }
+}

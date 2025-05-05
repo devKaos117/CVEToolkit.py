@@ -47,7 +47,7 @@ class CVEEnumerator:
         Args:
             api_key: NIST API key
             logger: Logger instance for logging
-            config: Optional configuration dictionary
+            config: Optional configuration dictionary following  https://github.com/devKaos117/CVEToolkit.py/blob/main/documentation/schema/config.schema.json
         """
         self._api_key = api_key
         self._logger = logger
