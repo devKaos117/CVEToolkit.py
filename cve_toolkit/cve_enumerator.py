@@ -39,6 +39,9 @@ class CVEEnumerator:
             }
         }
     }
+
+    _result_sw = None
+    _result_cve = None
     
     def __init__(self, logger: kronos.Logger, api_key: str, config: Optional[Dict[str, Any]] = None):
         """
@@ -197,6 +200,8 @@ class CVEEnumerator:
             
             # Create result
             sw = software.copy()
+            sw['verified_cves'] = []
+            sw['unverified_cves'] = []
             for cve in cves:
                 # Adding CVE id in software information
                 if cve['versionChecked']:
@@ -257,10 +262,20 @@ class CVEEnumerator:
 
         self._logger.info(f"CVE enumeration completed with {len(self._result_cve)} CVE's for {len(self._result_sw)} software entries")
     
-    def getSoftwares(self):
-        """"""
+    def getSoftwares(self) -> Optional[Dict[str, Any]]:
+        """
+        Get the processed softwares dictionary
+
+        Returns:
+            The dictionary containing the softwares and the found CVE IDs
+        """
         return self._result_sw
     
     def getCVE(self):
-        """"""
+        """
+        Get the found CVEs
+
+        Returns:
+            The dictionary containing all the found CVEs
+        """
         return self._result_cve
