@@ -79,14 +79,12 @@ class CVEFetcher:
 
                         result = cve.get_data()
 
-                        # Check if this software version is invalid
-                        if not valid_version:
-                            result["versionChecked"] = False
-                            results.append(result)
+                        result["versionChecked"] = False
                         # Check if this CVE applies to the version
-                        if cve.version_included(version):
+                        if valid_version and cve.version_included(version):
                             result["versionChecked"] = True
-                            results.append(result)
+
+                        results.append(result)
                     except Exception as e:
                         self._logger.exception(f"Error processing CVE: {str(e)}")
                 

@@ -70,14 +70,14 @@ class CVEEnumerator:
 
         return HTTPy(self._logger, config, rate_limiter)
     
-    def _worker_function(self, work_queue: Queue, results_dict: Dict[str, Any], processed_set: Dict[str, bool], client: HTTPy, fetcher: CVEFetcher):
+    def _worker_function(self, work_queue: Queue, result_cve: Dict[str, Any], result_sw: Dict[str, bool], client: HTTPy, fetcher: CVEFetcher):
         """
         Worker function for multiprocessing.
         
         Args:
             work_queue: Queue containing software data to process
-            results_dict: Shared dictionary to store results
-            processed_set: Shared dictionary to ensure no duplicates are processed
+            result_cve: Shared dictionary to store the CVE's found
+            result_sw: Shared dictionary to store the softwares processed
             client: Configured HTTPy client
             fetcher: CVE fetcher
         """
@@ -88,30 +88,39 @@ class CVEEnumerator:
                 sw_id, software = work_queue.get(timeout=1)
 
                 # Avoiding duplicates
-                if sw_id in processed_set:
+                if sw_id in result_sw:
                     self._logger.warning(f"Skipping already processed software {software['id']}")
                     continue
 
-                processed_set[sw_id] = True
+                # Setting value to avoid parallel duplicates
+                result_sw[sw_id] = True
 
                 try:
                     self._logger.info(f"Processing software {software['id']}")
                     
                     # Fetch CVEs for this software
                     cves = fetcher.fetch(client=client, keywords=software['name'], version=software['version'])
-                    
+
                     # Store results
-                    software_copy = software.copy()
-                    software_copy['cve'] = cves
-                    results_dict[sw_id] = software_copy
-                    
+                    result_sw[sw_id] = software.copy()
+                    result_sw[sw_id]['verified_cves'] = []
+                    result_sw[sw_id]['unverified_cves'] = []
+                    for cve in cves:
+                        # Adding CVE id in software information
+                        if cve['versionChecked']:
+                            result_sw[sw_id]['verified_cves'].append(cve['id'])
+                        else:
+                            result_sw[sw_id]['unverified_cves'].append(cve['id'])
+                        del cve["versionChecked"]
+                        # Adding CVE information
+                        if cve['id'] not in result_cve:
+                            result_cve[cve["id"]] = cve
+
                 except Exception as e:
                     self._logger.exception(f"Error processing software {software['id']}: {str(e)}")
                     # Still update results to indicate processing was done
-                    software_copy = software.copy()
-                    software_copy['cve'] = []
-                    software_copy['error'] = str(e)
-                    results_dict[sw_id] = software_copy
+                    result_sw[sw_id] = software.copy()
+                    result_sw[sw_id]['cves'] = []
                     
                 finally:
                     work_queue.task_done()
@@ -137,10 +146,8 @@ class CVEEnumerator:
         # Create a work queue and results dictionary
         manager = multiprocessing.Manager()
         work_queue = manager.Queue()
-        results_dict = manager.dict()
-        
-        # Create a tracking set to keep track of processed software
-        processed_set = manager.dict()
+        result_cve = manager.dict()
+        result_sw = manager.dict()
 
         # Create multiprocessing rate limiter, create HTTPy client and initialize fetcher
         rate_limiter = kronos.RateLimiter(limit=self.config['rate_limit'], time_period=self.config['rate_limit_period'], multiprocessing_mode=True, logger=self._logger)
@@ -154,7 +161,7 @@ class CVEEnumerator:
         # Create and start workers
         processes = []
         for _ in range(min(self.config['worker_count'], len(softwares))):
-            p = multiprocessing.Process(target=self._worker_function, args=(work_queue, results_dict, processed_set, client, fetcher))
+            p = multiprocessing.Process(target=self._worker_function, args=(work_queue, result_cve, result_sw, client, fetcher))
             processes.append(p)
             p.start()
             
@@ -165,10 +172,10 @@ class CVEEnumerator:
         self._logger.info("All workers are done")
 
         # Convert manager dictionary to regular dictionary
-        results = {k: dict(v) for k, v in results_dict.items()}
+        self._result_sw = {k: dict(v) for k, v in result_sw.items()}
+        self._result_cve = {k: dict(v) for k, v in result_cve.items()}
         
-        self._logger.info(f"CVE enumeration completed for {len(results)} software entries")
-        return results
+        self._logger.info(f"CVE enumeration completed with {len(self._result_cve)} CVE's for {len(self._result_sw)} software entries")
 
     def _process_software(self, sw_id: str, software: Dict[str, Any], client: HTTPy, fetcher: CVEFetcher) -> tuple:
         """
@@ -189,17 +196,23 @@ class CVEEnumerator:
             cves = fetcher.fetch(client=client, keywords=software['name'], version=software['version'])
             
             # Create result
-            software_copy = software.copy()
-            software_copy['cve'] = cves
+            sw = software.copy()
+            for cve in cves:
+                # Adding CVE id in software information
+                if cve['versionChecked']:
+                    sw['verified_cves'].append(cve['id'])
+                else:
+                    sw['unverified_cves'].append(cve['id'])
+                del cve["versionChecked"]
             
-            return sw_id, software_copy
+            return sw, cves
             
         except Exception as e:
             self._logger.exception(f"Error processing software {software['id']}: {str(e)}")
-            software_copy = software.copy()
-            software_copy['cve'] = []
-            software_copy['error'] = str(e)
-            return sw_id, software_copy
+            sw = software.copy()
+            sw['cve'] = []
+            sw['error'] = str(e)
+            return sw_id, sw
     
     def multithreading(self, softwares: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
         """
@@ -212,7 +225,8 @@ class CVEEnumerator:
             Dictionary with same structure as input, with added CVE data
         """
         self._logger.info(f"Starting CVE enumeration for {len(softwares)} software entries")
-        results = {}
+        result_sw = {}
+        result_cve = {}
 
         # Creating multithreading rate limiter, create HTTPy client and initialize fetcher
         rate_limiter = kronos.RateLimiter(limit=self.config['rate_limit'], time_period=self.config['rate_limit_period'], multiprocessing_mode=False, logger=self._logger)
@@ -230,10 +244,23 @@ class CVEEnumerator:
             # Process results as they complete
             for future in future_to_id:
                 try:
-                    sw_id, result = future.result()
-                    results[sw_id] = result
+                    sw, cves = future.result()
+                    result_sw[sw['id']] = sw
+                    for cve in cves:
+                        if cve['id'] not in result_cve:
+                            result_cve[cve['id']] = cve
                 except Exception as e:
                     self._logger.exception(f"Unhandled exception in worker: {str(e)}")
         
-        self._logger.info(f"CVE enumeration completed for {len(results)} software entries")
-        return results
+        self._result_sw = result_sw
+        self._result_cve = result_cve
+
+        self._logger.info(f"CVE enumeration completed with {len(self._result_cve)} CVE's for {len(self._result_sw)} software entries")
+    
+    def getSoftwares(self):
+        """"""
+        return self._result_sw
+    
+    def getCVE(self):
+        """"""
+        return self._result_cve

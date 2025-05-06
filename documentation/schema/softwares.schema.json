@@ -18,11 +18,21 @@
             "type": "string",
             "pattern": "^[0-9]+(\\.[0-9]+)*([a-zA-Z-_][0-9a-zA-Z-_]*)?$"
         },
-        "cve": {
-            "description": "Found CVE's added by the CVEEnumerator",
-            "type": "object",
+        "verified_cves": {
+            "description": "Found CVE's with version inclusion checked. Added by the CVEEnumerator",
+            "type": "array",
             "readOnly": true,
-            "$ref": "https://github.com/devKaos117/CVEToolkit.py/blob/main/documentation/schema/CVE.schema.json"
+            "items": {
+                "string": "CVE ID"
+            }
+        },
+        "unverified_cves": {
+            "description": "Found CVE's with version inclusion not checked. Added by the CVEEnumerator",
+            "type": "array",
+            "readOnly": true,
+            "items": {
+                "string": "CVE ID"
+            }
         }
     },
     "required": ["id", "name", "version"]
